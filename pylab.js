@@ -14,7 +14,7 @@
   "use strict";
 
   var XP = 20;
-  var CDN = "https://cdn.jsdelivr.net/pyodide/v0.27.2/full/";
+  var CDN = "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/";   // ≥ 0.27.3: διόρθωση για iPhone/iPad
 
   function N(x) { return { n: String(x) }; }
 
@@ -471,7 +471,9 @@
     renderList(); loadEx();
     bind(el);
     // ξεκίνα να φορτώνεις την Python στο παρασκήνιο
-    setTimeout(function () { loadPy().catch(function () {}); }, 300);
+    // στο iPhone/iPad φορτώνει μόνο όταν πατηθεί ▶ (λιγότερη μνήμη)
+    var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (!ios) setTimeout(function () { loadPy().catch(function () {}); }, 300);
   }
 
   function renderList() {
