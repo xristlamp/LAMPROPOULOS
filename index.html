@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Σημειώσεις Μαθημάτων · Χ. Λαμπρόπουλος</title>
+<meta name="description" content="Οι σημειώσεις των μαθημάτων για τους εκπαιδευόμενους των ΣΑΕΚ Μαρκοπούλου και Γλυφάδας.">
+<link rel="icon" href="assets/app/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Commissioner:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f3ee;
+    --paper: #fffdf9;
+    --ink: #1b2233;
+    --muted: #5d6475;
+    --line: #e4ded3;
+    --teal: #0f7c74;   --teal-soft: #e0f1ee;
+    --amber: #b5650d;  --amber-soft: #fbecd9;
+    --accent: var(--teal); --accent-soft: var(--teal-soft);
+    --shadow: 0 1px 2px rgba(27,34,51,.06), 0 6px 20px rgba(27,34,51,.06);
+    --app-bg: linear-gradient(135deg, #10163a 0%, #1d2a6b 55%, #2b4fd6 100%);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151d; --paper: #1a1e29; --ink: #ecebe6; --muted: #a2a7b5; --line: #2b3040;
+      --teal: #4cc3b8; --teal-soft: #173533; --amber: #f0a65a; --amber-soft: #3a2a17;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151d; --paper: #1a1e29; --ink: #ecebe6; --muted: #a2a7b5; --line: #2b3040;
+    --teal: #4cc3b8; --teal-soft: #173533; --amber: #f0a65a; --amber-soft: #3a2a17;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Commissioner", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px; line-height: 1.55;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+
+  /* Header */
+  header { padding: 40px 0 8px; }
+  .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+  h1 { font-size: clamp(28px, 5vw, 42px); line-height: 1.12; margin: 0; font-weight: 800; letter-spacing: -.01em; }
+  .lead { color: var(--muted); max-width: 60ch; margin: 10px 0 0; }
+
+  /* Class switcher */
+  .tabs { display: flex; gap: 10px; margin: 28px 0 0; flex-wrap: wrap; }
+  .tab {
+    flex: 1 1 260px; text-align: left; cursor: pointer; font: inherit; color: inherit;
+    background: var(--paper); border: 1.5px solid var(--line); border-radius: 14px;
+    padding: 14px 16px; transition: border-color .15s, box-shadow .15s;
+  }
+  .tab:hover { border-color: var(--muted); }
+  .tab[aria-selected="true"] { border-color: var(--c); box-shadow: inset 0 0 0 1.5px var(--c); }
+  .tab .s { font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .tab .s::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+  .tab .c { font-size: 14px; color: var(--muted); display: block; margin-top: 2px; }
+  .tab:focus-visible, .btn:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  /* Course head + search */
+  .course { margin: 30px 0 14px; display: flex; gap: 16px; align-items: end; justify-content: space-between; flex-wrap: wrap; }
+  .course h2 { margin: 0; font-size: 22px; line-height: 1.25; }
+  .course .meta { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .search {
+    font: inherit; font-size: 15px; color: var(--ink); background: var(--paper);
+    border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 12px; width: 240px; max-width: 100%;
+  }
+
+  /* Notes */
+  .notes { display: grid; gap: 12px; }
+  .note {
+    background: var(--paper); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
+    padding: 18px 18px 16px; display: grid; grid-template-columns: 64px 1fr; gap: 16px; align-items: start;
+  }
+  .date { text-align: center; background: var(--accent-soft); color: var(--accent); border-radius: 10px; padding: 8px 0 6px; }
+  .date b { display: block; font-size: 24px; line-height: 1; font-weight: 800; }
+  .date span { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .note h3 { margin: 0; font-size: 18px; line-height: 1.3; }
+  .tags { display: flex; gap: 6px; margin: 6px 0 0; flex-wrap: wrap; }
+  .tag { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .tag.new { border-color: transparent; background: var(--accent); color: var(--paper); }
+  .tag.soon { border-color: var(--accent); color: var(--accent); }
+  .note p { margin: 8px 0 12px; color: var(--muted); font-size: 15px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-weight: 600; font-size: 14px;
+    padding: 8px 14px; border-radius: 9px; border: 1.5px solid var(--accent); color: var(--accent); background: transparent;
+  }
+  .btn.primary { background: var(--accent); color: #fff; }
+  :root[data-theme="dark"] .btn.primary { color: #10131a; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #10131a; } }
+  .btn:hover { filter: brightness(1.08); }
+  .btn svg { width: 16px; height: 16px; }
+  .empty { color: var(--muted); padding: 20px 0; }
+
+  /* App promo */
+  .promo {
+    margin: 48px 0 0; border-radius: 22px; background: var(--app-bg); color: #fff; overflow: hidden;
+    display: grid; grid-template-columns: 1.15fr 1fr; gap: 12px; position: relative;
+  }
+  .promo .txt { padding: 32px 0 32px 32px; }
+  .promo .ad { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #9fb4ff; }
+  .promo .app { display: flex; align-items: center; gap: 14px; margin: 12px 0 10px; }
+  .promo .app img { width: 64px; height: 64px; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,.35); }
+  .promo h2 { margin: 0; font-size: clamp(22px, 3.4vw, 30px); line-height: 1.15; }
+  .promo .tl { margin: 2px 0 0; color: #c9d3ff; font-size: 15px; }
+  .promo ul { margin: 16px 0 18px; padding: 0; list-style: none; display: grid; gap: 7px; }
+  .promo li { display: flex; gap: 10px; font-size: 15px; color: #e6eaff; }
+  .promo li::before { content: "✓"; color: #6ee7c8; font-weight: 800; flex: none; }
+  .promo .free { font-size: 13px; color: #9fb4ff; margin: 0 0 18px; }
+  .gp {
+    display: inline-flex; align-items: center; gap: 10px; background: #000; color: #fff; text-decoration: none;
+    border: 1px solid #5a5a5a; border-radius: 10px; padding: 8px 16px 8px 12px;
+  }
+  .gp:hover { background: #111; }
+  .gp svg { width: 26px; height: 26px; }
+  .gp small { display: block; font-size: 10px; letter-spacing: .04em; text-transform: uppercase; opacity: .8; line-height: 1.1; }
+  .gp b { display: block; font-size: 18px; line-height: 1.15; font-weight: 600; }
+  .gp:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+  .promo .shots { position: relative; min-height: 340px; }
+  .promo .shots img {
+    position: absolute; width: 44%; border-radius: 14px; box-shadow: 0 12px 34px rgba(0,0,0,.45);
+  }
+  .promo .shots img:nth-child(1) { left: 6%;  top: 34px; transform: rotate(-6deg); }
+  .promo .shots img:nth-child(2) { left: 30%; top: 14px; z-index: 2; }
+  .promo .shots img:nth-child(3) { left: 54%; top: 40px; transform: rotate(6deg); }
+  .promo .who { font-size: 13px; color: #9fb4ff; margin: 0 0 4px; }
+
+  /* Sticky mini-ad on phones */
+  .mini {
+    position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 10; display: none;
+    align-items: center; gap: 10px; background: #141b45; color: #fff; border-radius: 14px; padding: 10px 10px 10px 10px;
+    box-shadow: 0 8px 26px rgba(0,0,0,.35); text-decoration: none;
+  }
+  .mini img { width: 40px; height: 40px; border-radius: 10px; }
+  .mini .t { flex: 1; min-width: 0; font-size: 13px; line-height: 1.3; }
+  .mini .t b { display: block; font-size: 14px; }
+  .mini .get { background: #3b6bff; border-radius: 8px; padding: 7px 12px; font-weight: 700; font-size: 13px; }
+  .mini .x { background: none; border: 0; color: #9fb4ff; font-size: 20px; padding: 4px 6px; cursor: pointer; }
+
+  footer { color: var(--muted); font-size: 13px; padding: 36px 0 48px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .theme { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 8px; padding: 4px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+
+  @media (max-width: 760px) {
+    header { padding-top: 26px; }
+    .promo { grid-template-columns: 1fr; }
+    .promo .txt { padding: 26px 20px 0; }
+    .promo .shots { min-height: 300px; }
+    .note { grid-template-columns: 1fr; gap: 10px; padding: 16px; }
+    .date { display: inline-flex; gap: 6px; align-items: baseline; padding: 4px 10px; justify-self: start; }
+    .date b { font-size: 16px; }
+    .search { width: 100%; }
+    .mini.show { display: flex; }
+    footer { padding-bottom: 96px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <p class="eyebrow" id="teacher"></p>
+      <h1>Σημειώσεις μαθημάτων</h1>
+      <p class="lead">Διάλεξε το τμήμα σου. Κάθε μάθημα ανοίγει ως PDF (διαβάζεται και στο κινητό) και μπορείς να κατεβάσεις και την αρχική παρουσίαση.</p>
+      <div class="tabs" role="tablist" id="tabs"></div>
+    </header>
+
+    <main>
+      <div class="course">
+        <div>
+          <h2 id="course-title"></h2>
+          <div class="meta" id="course-meta"></div>
+        </div>
+        <input class="search" id="q" type="search" placeholder="Αναζήτηση σε σημειώσεις…" aria-label="Αναζήτηση">
+      </div>
+      <div class="notes" id="notes" role="tabpanel"></div>
+
+      <section class="promo" id="app" aria-label="Η εφαρμογή μου"></section>
+    </main>
+
+    <footer>
+      <span id="foot"></span>
+      <button class="theme" id="theme" type="button">Θέμα: αυτόματο</button>
+    </footer>
+  </div>
+
+  <a class="mini" id="mini" target="_blank" rel="noopener"></a>
+
+<script src="notes.js"></script>
+<script>
+(function () {
+  var S = window.SITE;
+  var MONTHS = ["Ιαν","Φεβ","Μαρ","Απρ","Μαΐ","Ιουν","Ιουλ","Αυγ","Σεπ","Οκτ","Νοε","Δεκ"];
+  var DAYS = ["Κυριακή","Δευτέρα","Τρίτη","Τετάρτη","Πέμπτη","Παρασκευή","Σάββατο"];
+  var ICON_EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var ICON_DL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg>';
+  var ICON_GP = '<svg viewBox="0 0 24 24"><path fill="#00d7fe" d="M3.6 1.8c-.3.3-.4.7-.4 1.3v17.8c0 .5.2 1 .4 1.3l.1.1 10-10v-.2L3.7 1.7z"/><path fill="#ffce00" d="M17 15.6l-3.3-3.4v-.2L17 8.6h.1l4 2.3c1.1.6 1.1 1.7 0 2.4l-4 2.3z"/><path fill="#ff3a44" d="M17.1 15.5L13.7 12 3.6 22.2c.4.4 1 .4 1.7.1l11.8-6.8"/><path fill="#00f076" d="M17.1 8.5L5.3 1.8c-.7-.4-1.3-.3-1.7.1L13.7 12z"/></svg>';
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+  function parse(d) { var p = d.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+
+  document.getElementById("teacher").textContent = "Εκπαιδευτής: " + S.teacher;
+  document.getElementById("foot").textContent = "© " + new Date().getFullYear() + " " + S.teacher;
+
+  // ---- tabs ----
+  var tabs = document.getElementById("tabs");
+  S.classes.forEach(function (c) {
+    var b = document.createElement("button");
+    b.className = "tab"; b.type = "button"; b.setAttribute("role", "tab"); b.dataset.id = c.id;
+    b.style.setProperty("--c", "var(--" + c.color + ")");
+    b.innerHTML = '<span class="s">' + esc(c.school) + '</span><span class="c">' + esc(c.course) + '</span>';
+    b.onclick = function () { location.hash = c.id; };
+    tabs.appendChild(b);
+  });
+
+  var current = null;
+  function show(id) {
+    var c = S.classes.filter(function (x) { return x.id === id; })[0] || S.classes.filter(function (x) { return x.id === store("lastClass"); })[0] || S.classes[0];
+    current = c; store("lastClass", c.id);
+    Array.prototype.forEach.call(tabs.children, function (b) { b.setAttribute("aria-selected", b.dataset.id === c.id); });
+    document.documentElement.style.setProperty("--accent", "var(--" + c.color + ")");
+    document.documentElement.style.setProperty("--accent-soft", "var(--" + c.color + "-soft)");
+    document.getElementById("course-title").textContent = c.course;
+    document.getElementById("course-meta").textContent = c.school + " · " + c.meta;
+    render();
+  }
+
+  // ---- notes ----
+  var q = document.getElementById("q");
+  q.oninput = render;
+  function norm(s) { return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+
+  function render() {
+    var box = document.getElementById("notes");
+    var term = norm(q.value.trim());
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var list = current.notes
+      .filter(function (n) { return n.visible !== false; })
+      .filter(function (n) { return !term || norm(n.title + " " + n.desc + " " + n.kind).indexOf(term) >= 0; })
+      .sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
+
+    if (!list.length) { box.innerHTML = '<div class="empty">' + (term ? "Δεν βρέθηκαν σημειώσεις." : "Δεν υπάρχουν ακόμη σημειώσεις.") + '</div>'; return; }
+
+    box.innerHTML = list.map(function (n) {
+      var d = parse(n.date);
+      var age = (today - d) / 864e5;
+      var badge = age < 0 ? '<span class="tag soon">Προσεχώς</span>' : age <= 7 ? '<span class="tag new">Νέο</span>' : '';
+      return '<article class="note">' +
+        '<div class="date" title="' + DAYS[d.getDay()] + '"><b>' + d.getDate() + '</b><span>' + MONTHS[d.getMonth()] + '</span></div>' +
+        '<div><h3>' + esc(n.title) + '</h3>' +
+        '<div class="tags">' + badge +
+          (n.kind ? '<span class="tag">' + esc(n.kind) + '</span>' : '') +
+          '<span class="tag">' + DAYS[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear() + '</span></div>' +
+        '<p>' + esc(n.desc || "") + '</p>' +
+        '<div class="actions">' +
+          (n.pdf ? '<a class="btn primary" href="' + encodeURI(n.pdf) + '" target="_blank" rel="noopener">' + ICON_EYE + 'Άνοιγμα PDF</a>' : '') +
+          (n.pptx ? '<a class="btn" href="' + encodeURI(n.pptx) + '" download>' + ICON_DL + 'Παρουσίαση .pptx</a>' : '') +
+        '</div></div></article>';
+    }).join("");
+  }
+
+  // ---- app promo ----
+  var A = S.app;
+  document.getElementById("app").innerHTML =
+    '<div class="txt">' +
+      '<div class="ad">Η εφαρμογή μου</div>' +
+      '<div class="app"><img src="' + A.icon + '" alt=""><div><h2>' + esc(A.name) + '</h2><p class="tl">' + esc(A.tagline) + '</p></div></div>' +
+      '<p class="who">Ξέρεις κάποιον που δίνει Πανελλαδικές; Στείλ\' του την!</p>' +
+      '<ul>' + A.features.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join("") + '</ul>' +
+      '<p class="free">' + esc(A.note) + '</p>' +
+      '<a class="gp" href="' + A.url + '" target="_blank" rel="noopener">' + ICON_GP + '<span><small>Διαθέσιμο στο</small><b>Google Play</b></span></a>' +
+    '</div>' +
+    '<div class="shots" aria-hidden="true">' + A.shots.map(function (s) { return '<img src="' + s + '" alt="" loading="lazy">'; }).join("") + '</div>';
+
+  var mini = document.getElementById("mini");
+  mini.href = A.url;
+  mini.innerHTML = '<img src="' + A.icon + '" alt=""><span class="t"><b>' + esc(A.name) + '</b>Δωρεάν στο Google Play</span><span class="get">Λήψη</span><button class="x" type="button" aria-label="Κλείσιμο">×</button>';
+  if (store("miniClosed") !== "1") mini.classList.add("show");
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(function (e) { mini.style.visibility = e[0].isIntersecting ? "hidden" : ""; })
+      .observe(document.getElementById("app"));
+  }
+  mini.querySelector(".x").onclick = function (e) { e.preventDefault(); mini.classList.remove("show"); store("miniClosed", "1"); };
+
+  // ---- theme ----
+  var tbtn = document.getElementById("theme");
+  var themes = ["", "light", "dark"], labels = ["αυτόματο", "φωτεινό", "σκοτεινό"];
+  function applyTheme(t) {
+    if (t) document.documentElement.setAttribute("data-theme", t); else document.documentElement.removeAttribute("data-theme");
+    tbtn.textContent = "Θέμα: " + labels[themes.indexOf(t)];
+  }
+  var theme = store("theme") || "";
+  if (themes.indexOf(theme) < 0) theme = "";
+  applyTheme(theme);
+  tbtn.onclick = function () {
+    theme = themes[(themes.indexOf(theme) + 1) % 3];
+    store("theme", theme); applyTheme(theme);
+  };
+
+  window.addEventListener("hashchange", function () { show(location.hash.slice(1)); });
+  show(location.hash.slice(1));
+})();
+</script>
+</body>
+</html>
