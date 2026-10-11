@@ -8,7 +8,8 @@
     tests: [{ in: [είσοδοι για input()], has: [τι πρέπει να εμφανιστεί], not: [τι δεν πρέπει] }]
            (στο has/not: κείμενο, /regex/ ή N("5") για «ο αριθμός 5 ακριβώς»)
     need:  [{ re: /regex στον κώδικα/, msg: "μήνυμα αν λείπει" }]   (προαιρετικό)
-    setup: "κώδικας Python που τρέχει πριν" (προαιρετικό)
+    setup: "κώδικας Python που τρέχει πριν" (προαιρετικό· και ανά τεστ: tests[i].setup)
+    post:  "κώδικας Python που τρέχει μετά, μόνο στον έλεγχο" (προαιρετικό· π.χ. δείχνει τι γράφτηκε σε αρχείο)
 */
 (function () {
   "use strict";
@@ -17,6 +18,11 @@
   var CDN = "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/";   // ≥ 0.27.3: διόρθωση για iPhone/iPad
 
   function N(x) { return { n: String(x) }; }
+  // βοηθοί για ασκήσεις με αρχεία (κώδικας Python για setup / post)
+  function RM() { return "import os as _os\nfor _f in " + JSON.stringify([].slice.call(arguments)) + ":\n    if _os.path.exists(_f): _os.remove(_f)\n"; }
+  function WRITE(name, text) { return "with open(" + JSON.stringify(name) + ", 'w', encoding='utf-8', newline='') as _f: _f.write(" + JSON.stringify(text) + ")\n"; }
+  function SHOW(name) { return "try:\n    with open(" + JSON.stringify(name) + ", encoding='utf-8-sig', newline='') as _f: print('\\n📄 " + name + ":', repr(_f.read()))\nexcept FileNotFoundError:\n    print('\\n📄 " + name + ": δεν φτιάχτηκε')\n"; }
+  function SHOWCSV(name) { return "import csv as _csv\ntry:\n    with open(" + JSON.stringify(name) + ", encoding='utf-8-sig', newline='') as _f: print('\\n📄 " + name + ":', list(_csv.reader(_f)))\nexcept FileNotFoundError:\n    print('\\n📄 " + name + ": δεν φτιάχτηκε')\n"; }
 
   // ======================= ΜΑΘΗΜΑΤΑ & ΑΣΚΗΣΕΙΣ =======================
   var LESSONS = [
@@ -200,6 +206,165 @@
           tests: [{ in: ["Αθήνα", "μήλο", "Αλέκος", "σπίτι", ""], has: [N(4), N(2), "Αθήνα"] }, { in: [""], has: [N(0)] }],
           need: [{ re: /\bwhile\b/, msg: "Χρησιμοποίησε while (δεν ξέρεις πόσες λέξεις θα δοθούν)." }] }
       ]
+    },
+    {
+      id: "m4", num: 4, title: "Σύνολα και λεξικά", short: "Σύνολα & λεξικά", date: "2026-10-26",
+      ex: [
+        { id: "m4a", tag: "Ζέσταμα", title: "Μοναδικοί επισκέπτες",
+          desc: "Η λίστα visits έχει όποιον μπήκε στο site, με επαναλήψεις. Εμφάνισε πόσες επισκέψεις έγιναν, πόσοι διαφορετικοί επισκέπτες ήταν, και τους επισκέπτες αλφαβητικά.",
+          ex: "Επισκέψεις: 6\nΔιαφορετικοί: 3\n['Άννα', 'Ελένη', 'Νίκος']",
+          starter: 'visits = ["Άννα", "Νίκος", "Άννα", "Ελένη", "Νίκος", "Άννα"]\n',
+          hint: "Το set(visits) κρατά κάθε όνομα μία φορά. Το len() μετρά, και το sorted(σύνολο) δίνει λίστα με αλφαβητική σειρά.",
+          tests: [{ in: [], has: [N(6), N(3), "['Άννα', 'Ελένη', 'Νίκος']"] }],
+          need: [{ re: /\bset\s*\(/, msg: "Χρησιμοποίησε σύνολο: set(visits)" }] },
+        { id: "m4b", tag: "Άσκηση", title: "Ένωση, τομή, διαφορά",
+          desc: "Δύο σύνολα: ποιοι έκαναν Python και ποιοι Java. Εμφάνισε (ταξινομημένα με sorted): ποιοι έκαναν έστω ένα, ποιοι και τα δύο, ποιοι μόνο Python, ποιοι μόνο ένα από τα δύο.",
+          ex: "Έστω ένα: ['Άννα', 'Ελένη', 'Μαρία', 'Νίκος']\nΚαι τα δύο: ['Νίκος']\nΜόνο Python: ['Άννα', 'Ελένη']\nΜόνο ένα: ['Άννα', 'Ελένη', 'Μαρία']",
+          starter: 'python = {"Άννα", "Νίκος", "Ελένη"}\njava = {"Νίκος", "Μαρία"}\n',
+          hint: "Ένωση python | java, τομή python & java, διαφορά python - java, συμμετρική διαφορά python ^ java. Τύπωσε π.χ. sorted(python | java).",
+          tests: [{ in: [], has: ["['Άννα', 'Ελένη', 'Μαρία', 'Νίκος']", "['Νίκος']", "['Άννα', 'Ελένη']", "['Άννα', 'Ελένη', 'Μαρία']"] }],
+          need: [{ re: /\|/, msg: "Για την ένωση χρησιμοποίησε το |" }, { re: /&/, msg: "Για την τομή χρησιμοποίησε το &" }, { re: /\^/, msg: "Για «μόνο ένα από τα δύο» χρησιμοποίησε το ^" }] },
+        { id: "m4c", tag: "Άσκηση", title: "Τιμοκατάλογος καφετέριας",
+          desc: "Ο χρήστης γράφει ένα προϊόν. Αν υπάρχει στο λεξικό prices, εμφάνισε την τιμή του με 2 δεκαδικά. Αλλιώς «Δεν υπάρχει στον κατάλογο» (χωρίς KeyError!).",
+          ex: "Προϊόν: καφές\nΤιμή: 2.50€\n\nΠροϊόν: πίτσα\nΔεν υπάρχει στον κατάλογο",
+          starter: 'prices = {"καφές": 2.5, "τσάι": 2.0, "χυμός": 3.2, "νερό": 0.5}\nitem = input("Προϊόν: ")\n',
+          hint: 'Έλεγξε με if item in prices: … else: …  ή χρησιμοποίησε prices.get(item). Για 2 δεκαδικά: f"{prices[item]:.2f}"',
+          tests: [{ in: ["καφές"], has: ["2.50"], not: ["Δεν υπάρχει"] }, { in: ["νερό"], has: ["0.50"] }, { in: ["πίτσα"], has: ["Δεν υπάρχει"] }],
+          need: [{ re: /\.get\s*\(|\bin\s+prices\b/, msg: "Χρησιμοποίησε get() ή έλεγχο με in, για να μη βγει KeyError." }] },
+        { id: "m4d", tag: "Άσκηση", title: "Αποθήκη φρούτων",
+          desc: "Με το λεξικό stock κάνε με τη σειρά: πρόσθεσε «κεράσια» με 25, άλλαξε τα «μήλα» σε 8, αύξησε τα «αχλάδια» κατά 6, διέγραψε τα «κεράσια». Στο τέλος εμφάνισε το λεξικό και το πλήθος των κλειδιών.",
+          ex: "{'μήλα': 8, 'αχλάδια': 10}\n2",
+          starter: 'stock = {"μήλα": 10, "αχλάδια": 4}\n',
+          hint: 'stock["κεράσια"] = 25 προσθέτει, stock["μήλα"] = 8 αλλάζει, stock["αχλάδια"] += 6 αυξάνει, del stock["κεράσια"] διαγράφει. Πλήθος: len(stock).',
+          tests: [{ in: [], has: ["{'μήλα': 8, 'αχλάδια': 10}", N(2)], not: ["κεράσια"] }],
+          need: [{ re: /\bdel\b|\.pop\s*\(/, msg: "Διέγραψε τα κεράσια με del (ή pop)." }, { re: /\+=/, msg: "Αύξησε τα αχλάδια με +=" }] },
+        { id: "m4e", tag: "Άσκηση", title: "Ο μετρητής γραμμάτων",
+          desc: "Διάβασε μια λέξη και φτιάξε λεξικό που λέει πόσες φορές εμφανίζεται κάθε γράμμα. Εμφάνισε το λεξικό.",
+          ex: "Λέξη: abracadabra\n{'a': 5, 'b': 2, 'r': 2, 'c': 1, 'd': 1}",
+          starter: 'text = input("Λέξη: ")\ncounts = {}\n',
+          hint: "Το μοτίβο του μετρητή: for ch in text: counts[ch] = counts.get(ch, 0) + 1",
+          tests: [{ in: ["abracadabra"], has: ["{'a': 5, 'b': 2, 'r': 2, 'c': 1, 'd': 1}"] }, { in: ["banana"], has: ["{'b': 1, 'a': 3, 'n': 2}"] }],
+          need: [{ re: /\bfor\b/, msg: "Πέρνα τα γράμματα ένα-ένα με for." }] },
+        { id: "m4f", tag: "Εργαστήριο 1", title: "Αφαίρεση διπλοτύπων",
+          desc: "Η λίστα emails έχει διπλές εγγραφές (και μία με κεφαλαία). Μετατρέψε κάθε email σε πεζά, και φτιάξε λίστα χωρίς διπλότυπα που κρατά τη σειρά εγγραφής. Εμφάνισε πόσες ήταν και πόσες έμειναν, και τη λίστα.",
+          ex: "5 → 3\n['a@x.gr', 'b@y.gr', 'c@z.gr']",
+          starter: 'emails = ["a@x.gr", "b@y.gr", "A@x.gr", "c@z.gr", "b@y.gr"]\nseen = set()\nordered = []\n',
+          hint: "for e in emails: e = e.lower() και if e not in seen: seen.add(e) και ordered.append(e). Το seen είναι σύνολο γιατί το in σε σύνολο είναι άμεσο.",
+          tests: [{ in: [], has: [N(5), N(3), "['a@x.gr', 'b@y.gr', 'c@z.gr']"] }],
+          need: [{ re: /\.lower\s*\(/, msg: "Μετάτρεψε σε πεζά με .lower(), αλλιώς το A@x.gr μετράει ως διαφορετικό." }, { re: /\.add\s*\(/, msg: "Κράτα όσα είδες σε σύνολο, με .add()" }] },
+        { id: "m4g", tag: "Εργαστήριο 2", title: "Συχνότητα λέξεων",
+          desc: "Ο χρήστης γράφει μια πρόταση. Εμφάνισε πόσες φορές εμφανίζεται κάθε λέξη (αλφαβητικά, «λέξη: πλήθος») και ποια είναι η πιο συχνή. Κεφαλαία και πεζά μετράνε ίδια.",
+          ex: "Κείμενο: Το παιδί και το σκυλί και το γατί\nγατί: 1\nκαι: 2\nπαιδί: 1\nσκυλί: 1\nτο: 3\nΠιο συχνή: το 3",
+          starter: 'text = input("Κείμενο: ").lower()\nwords = text.split()\ncounts = {}\n',
+          hint: 'Μέτρα με counts[w] = counts.get(w, 0) + 1. Για αλφαβητικά: for w in sorted(counts): print(f"{w}: {counts[w]}"). Η πιο συχνή: max(counts, key=counts.get), ή με βρόχο που κρατά την καλύτερη.',
+          tests: [
+            { in: ["Το παιδί και το σκυλί και το γατί"], has: [/γατί:\s*1/, /(^|\s)και:\s*2/, /παιδί:\s*1/, /σκυλί:\s*1/, /(^|\s)το:\s*3/, /γατί[\s\S]*και[\s\S]*παιδί[\s\S]*σκυλί[\s\S]*το:/, /Πιο συχνή:?\s*το\s*:?\s*3/] },
+            { in: ["Ένα δύο ένα"], has: [/ένα:\s*2/, /δύο:\s*1/, /Πιο συχνή:?\s*ένα\s*:?\s*2/] }
+          ] },
+        { id: "m4h", tag: "Ο στόχος", title: "Τηλεφωνικός κατάλογος",
+          desc: "Κατάλογος με μενού: 1 Προσθήκη, 2 Αναζήτηση, 3 Διαγραφή, 4 Όλοι (αλφαβητικά, «όνομα: τηλέφωνο»), 0 Έξοδος. Για όνομα που δεν υπάρχει: «Δεν βρέθηκε». Μετά από διαγραφή: «Διαγράφηκε». Για άλλη επιλογή: «Λάθος επιλογή».",
+          ex: "1.Προσθήκη 2.Αναζήτηση 3.Διαγραφή 4.Όλοι 0.Έξοδος\nΕπιλογή: 1\nΌνομα: Νίκος\nΤηλέφωνο: 6972222222\n...\nΕπιλογή: 2\nΌνομα: Νίκος\n6972222222\n...\nΕπιλογή: 0",
+          starter: 'phone = {}\nwhile True:\n    print("\\n1.Προσθήκη 2.Αναζήτηση 3.Διαγραφή 4.Όλοι 0.Έξοδος")\n    choice = input("Επιλογή: ")\n    # συμπλήρωσε με if / elif / else\n',
+          hint: 'Προσθήκη: phone[name] = input("Τηλέφωνο: "). Αναζήτηση: print(phone.get(name, "Δεν βρέθηκε")). Διαγραφή: if name in phone: del phone[name]. Όλοι: for name in sorted(phone). Έξοδος: break.',
+          tests: [{ in: ["1", "Άννα", "6971111111", "1", "Νίκος", "6972222222", "2", "Νίκος", "2", "Μαρία", "3", "Άννα", "3", "Άννα", "4", "9", "0"],
+                    has: ["6972222222", "Δεν βρέθηκε", "Διαγράφηκε", /Νίκος:\s*6972222222/, "Λάθος επιλογή"], not: [/Άννα:\s*6971111111/] }],
+          need: [{ re: /\bbreak\b/, msg: "Το while True θέλει break για να σταματήσει στο 0." }] },
+        { id: "m4i", tag: "Για το σπίτι", title: "Ονόματα και συχνότητες",
+          desc: "Διάβαζε ονόματα μέχρι να δοθεί κενή γραμμή. Εμφάνισε πόσα διαφορετικά δόθηκαν και πόσες φορές το καθένα.",
+          ex: "Όνομα: Άννα\nΌνομα: Νίκος\nΌνομα: Άννα\nΌνομα: \nΔιαφορετικά: 2\nΆννα: 2\nΝίκος: 1",
+          starter: "counts = {}\n",
+          hint: 'while True: name = input("Όνομα: ") και if name == "": break. Αλλιώς counts[name] = counts.get(name, 0) + 1. Διαφορετικά = len(counts).',
+          tests: [{ in: ["Άννα", "Νίκος", "Άννα", "Ελένη", "Άννα", ""], has: [/Διαφορετικά\D*3/, /Άννα:\s*3/, /Νίκος:\s*1/, /Ελένη:\s*1/] }, { in: [""], has: [/Διαφορετικά\D*0/] }],
+          need: [{ re: /\bwhile\b/, msg: "Χρησιμοποίησε while (δεν ξέρεις πόσα ονόματα θα δοθούν)." }] },
+        { id: "m4j", tag: "Πρόκληση", title: "Λεξικό με λίστες βαθμών",
+          desc: "Κάθε μαθητής έχει λίστα βαθμών. Πρόσθεσε το 20 στην Άννα, φτιάξε τη Μαρία με βαθμό 14 (δεν υπάρχει ακόμα), και εμφάνισε τον μέσο όρο κάθε μαθητή με 2 δεκαδικά.",
+          ex: "Άννα: 17.50\nΝίκος: 9.33\nΜαρία: 14.00",
+          starter: 'grades = {"Άννα": [17, 15, 18],\n          "Νίκος": [9, 11, 8]}\n',
+          hint: 'grades["Άννα"].append(20). Για τη Μαρία: grades.setdefault("Μαρία", []).append(14) ή grades["Μαρία"] = [14]. Μετά for name, gl in grades.items(): και sum(gl) / len(gl).',
+          tests: [{ in: [], has: [/Άννα:\s*17\.50/, /Νίκος:\s*9\.33/, /Μαρία:\s*14\.00/] }],
+          need: [{ re: /\.append\s*\(/, msg: "Πρόσθεσε τον βαθμό στη λίστα της Άννας με append()." }, { re: /\.items\s*\(/, msg: "Διάτρεξε το λεξικό με items()." }] }
+      ]
+    },
+    {
+      id: "m5", num: 5, title: "Αρχεία και εξαιρέσεις", short: "Αρχεία & εξαιρέσεις", date: "2026-11-02",
+      ex: [
+        { id: "m5a", tag: "Ζέσταμα", title: "Λίστα αγορών σε αρχείο",
+          desc: "Γράψε στο shopping.txt τα ψωμί, γάλα, αυγά (ένα σε κάθε γραμμή, mode \"w\"). Μετά άνοιξέ το ξανά με \"a\" και πρόσθεσε τυρί. Στο τέλος διάβασε το αρχείο και εμφάνισέ το.",
+          ex: "ψωμί\nγάλα\nαυγά\nτυρί",
+          starter: '# 1. γράψε ψωμί, γάλα, αυγά με "w"\n\n# 2. πρόσθεσε τυρί με "a"\n\n# 3. διάβασε το αρχείο και εμφάνισέ το\n',
+          hint: 'with open("shopping.txt", "w", encoding="utf-8") as f: και μέσα f.write("ψωμί\\n"). Για την προσθήκη το ίδιο με "a". Για ανάγνωση: with open("shopping.txt", encoding="utf-8") as f: print(f.read())',
+          setup: RM("shopping.txt"), post: SHOW("shopping.txt"),
+          tests: [{ in: [], has: [/📄 shopping\.txt: 'ψωμί\\nγάλα\\nαυγά\\nτυρί(\\n)?'/] }],
+          need: [{ re: /\bopen\s*\(/, msg: "Άνοιξε το αρχείο με open()." }, { re: /["']a["']/, msg: "Το τυρί πρόσθεσέ το με mode \"a\" (κρατά τα παλιά)." }] },
+        { id: "m5b", tag: "Άσκηση", title: "Άθροισμα από αρχείο",
+          desc: "Το numbers.txt έχει έναν ακέραιο σε κάθε γραμμή, αλλά και κάποιες κενές γραμμές. Διάβασέ το και εμφάνισε το άθροισμα.",
+          ex: "Άθροισμα: 49",
+          starter: 'total = 0\n# το numbers.txt υπάρχει ήδη εδώ\n',
+          hint: "Για κάθε γραμμή: line = line.strip(). Αν line == \"\": continue. Αλλιώς total += int(line).",
+          setup: WRITE("numbers.txt", "12\n7\n\n30\n"),
+          tests: [{ in: [], has: [N(49)] }, { in: [], setup: WRITE("numbers.txt", "5\n\n5\n-3\n\n"), has: [N(7)] }],
+          need: [{ re: /\bopen\s*\(/, msg: "Διάβασε το αρχείο με open()." }] },
+        { id: "m5c", tag: "Άσκηση", title: "Γράψε ένα CSV",
+          desc: "Αποθήκευσε τη λίστα rows στο grades.csv με το module csv: πρώτα η επικεφαλίδα name,grade και μετά οι εγγραφές.",
+          ex: "(το grades.csv γίνεται)\nname,grade\nΆννα,17\nΝίκος,9\nΜαρία,18.5",
+          starter: 'import csv\nrows = [["Άννα", 17], ["Νίκος", 9], ["Μαρία", 18.5]]\n',
+          hint: 'with open("grades.csv", "w", newline="", encoding="utf-8") as f: και μέσα writer = csv.writer(f), writer.writerow(["name", "grade"]), writer.writerows(rows).',
+          setup: RM("grades.csv"), post: SHOWCSV("grades.csv"),
+          tests: [{ in: [], has: ["[['name', 'grade'], ['Άννα', '17'], ['Νίκος', '9'], ['Μαρία', '18.5']]"] }],
+          need: [{ re: /csv\.writer\s*\(/, msg: "Χρησιμοποίησε csv.writer(f)." }] },
+        { id: "m5d", tag: "Άσκηση", title: "Διαίρεση χωρίς «σκάσιμο»",
+          desc: "Διάβασε a και b και εμφάνισε το a / b. Με try / except / else / finally: για γράμματα «Μόνο αριθμοί!», για b = 0 «Διαίρεση με το 0!», αλλιώς «Αποτέλεσμα: …». Σε κάθε περίπτωση στο τέλος «Τέλος υπολογισμού».",
+          ex: "a: 10\nb: 4\nΑποτέλεσμα: 2.5\nΤέλος υπολογισμού",
+          starter: 'try:\n    a = int(input("a: "))\n    b = int(input("b: "))\n    result = a / b\n',
+          hint: "except ValueError: για τα γράμματα, except ZeroDivisionError: για το 0, else: για το αποτέλεσμα, finally: για το «Τέλος υπολογισμού».",
+          tests: [{ in: ["10", "4"], has: ["2.5", "Τέλος υπολογισμού"], not: ["Μόνο αριθμοί", "Διαίρεση με το 0"] },
+                  { in: ["10", "0"], has: ["Διαίρεση με το 0", "Τέλος υπολογισμού"], not: ["Αποτέλεσμα"] },
+                  { in: ["10", "x"], has: ["Μόνο αριθμοί", "Τέλος υπολογισμού"], not: ["Αποτέλεσμα"] }],
+          need: [{ re: /except\s+ZeroDivisionError/, msg: "Πιάσε τη διαίρεση με το 0: except ZeroDivisionError:" }, { re: /\bfinally\s*:/, msg: "Το «Τέλος υπολογισμού» μπαίνει στο finally:" }] },
+        { id: "m5e", tag: "Εργαστήριο 1", title: "Ασφαλής είσοδος βαθμών",
+          desc: "Διάβασε 5 βαθμούς (0–20). Αν ο χρήστης γράψει κάτι που δεν είναι αριθμός ή είναι εκτός ορίων, εμφάνισε «Λάθος: …» και ξαναρώτα τον ίδιο βαθμό. Στο τέλος εμφάνισε τον μέσο όρο με 2 δεκαδικά.",
+          ex: "Βαθμός 1: 15\nΒαθμός 2: abc\nΛάθος: could not convert ...\nΒαθμός 2: 25\nΛάθος: εκτός ορίων 0-20\nΒαθμός 2: 12\n...\nΜέσος όρος: 14.90",
+          starter: "grades = []\n",
+          hint: 'while len(grades) < 5: και μέσα try: g = float(input(...)), if not 0 <= g <= 20: raise ValueError("εκτός ορίων 0-20"), grades.append(g). except ValueError as e: print("Λάθος:", e)',
+          tests: [{ in: ["15", "abc", "25", "12", "18", "", "20", "9.5"], has: ["14.90", "Λάθος"] }, { in: ["10", "10", "10", "10", "10"], has: ["10.00"], not: ["Λάθος"] }],
+          need: [{ re: /\btry\s*:/, msg: "Χρησιμοποίησε try / except για τα γράμματα." }, { re: /\braise\b/, msg: "Για βαθμό εκτός 0–20 σήκωσε εξαίρεση: raise ValueError(\"εκτός ορίων 0-20\")" }] },
+        { id: "m5f", tag: "Εργαστήριο 2", title: "Στατιστικά από CSV",
+          desc: "Διάβασε το grades.csv (στήλες name,grade) και εμφάνισε πλήθος μαθητών, μέσο όρο (2 δεκαδικά) και ποιοι πέρασαν (≥ 10, χωρισμένοι με κόμμα). Αν το αρχείο λείπει: «Δεν βρέθηκε το grades.csv» αντί για σφάλμα.",
+          ex: "Μαθητές: 5\nΜέσος όρος: 12.60\nΠέρασαν: Άννα, Μαρία, Γιώργος",
+          starter: "import csv\n# το grades.csv υπάρχει ήδη εδώ\n",
+          hint: 'Μέσα σε try: with open("grades.csv", newline="", encoding="utf-8") as f: rows = list(csv.DictReader(f)). except FileNotFoundError: για το μήνυμα. Οι βαθμοί: float(r["grade"]). Για τα ονόματα: ", ".join(passed).',
+          setup: WRITE("grades.csv", "name,grade\r\nΆννα,17\r\nΝίκος,9\r\nΜαρία,18.5\r\nΓιώργος,11\r\nΕλένη,7.5\r\n"),
+          tests: [{ in: [], has: [/Μαθητές\D*5/, "12.60", /Πέρασαν:?\s*Άννα, Μαρία, Γιώργος/], not: ["Νίκος", "Ελένη"] },
+                  { in: [], setup: WRITE("grades.csv", "name,grade\r\nΚώστας,20\r\nΛένα,5\r\n"), has: [/Μαθητές\D*2/, "12.50", /Πέρασαν:?\s*Κώστας/], not: ["Λένα"] },
+                  { in: [], setup: RM("grades.csv"), has: ["Δεν βρέθηκε"] }],
+          need: [{ re: /except\s+FileNotFoundError/, msg: "Πιάσε το αρχείο που λείπει: except FileNotFoundError:" }] },
+        { id: "m5g", tag: "Άσκηση", title: "pickle: πάγωσε το λεξικό",
+          desc: "Αποθήκευσε το λεξικό phone στο phone.dat με pickle. Μετά φόρτωσέ το σε νέα μεταβλητή loaded και εμφάνισε αν είναι ίδιο με το αρχικό, και το τηλέφωνο του Νίκου από το loaded.",
+          ex: "True\n6972222222",
+          starter: 'import pickle\nphone = {"Άννα": "6971111111", "Νίκος": "6972222222"}\n',
+          hint: 'with open("phone.dat", "wb") as f: pickle.dump(phone, f). Μετά with open("phone.dat", "rb") as f: loaded = pickle.load(f). Τέλος print(loaded == phone) και print(loaded["Νίκος"]).',
+          setup: RM("phone.dat"), post: "import os as _os\nprint('\\n📄 phone.dat:', 'υπάρχει' if _os.path.exists('phone.dat') else 'δεν φτιάχτηκε')\n",
+          tests: [{ in: [], has: ["True", "6972222222", "phone.dat: υπάρχει"] }],
+          need: [{ re: /pickle\.dump\s*\(/, msg: "Αποθήκευσε με pickle.dump()." }, { re: /pickle\.load\s*\(/, msg: "Φόρτωσε με pickle.load()." }, { re: /["']rb["']/, msg: "Το pickle θέλει δυαδικό αρχείο: \"wb\" για γράψιμο, \"rb\" για διάβασμα." }] },
+        { id: "m5h", tag: "Ο στόχος", title: "Κατάλογος που θυμάται",
+          desc: "Ο κατάλογος του Μαθήματος 4 με αποθήκευση: στην αρχή φορτώνει τις επαφές από το phone.csv (αν δεν υπάρχει, ξεκινά κενός). Στην έξοδο (0) τις αποθηκεύει και εμφανίζει «Αποθηκεύτηκαν N επαφές». Δοκίμασε: πρόσθεσε επαφές, βγες με 0, ξανατρέξε και πάτα 3!",
+          ex: "1.Προσθήκη 2.Αναζήτηση 3.Όλοι 0.Έξοδος: 1\nΌνομα: Νίκος\nΤηλέφωνο: 6972222222\n1.Προσθήκη 2.Αναζήτηση 3.Όλοι 0.Έξοδος: 0\nΑποθηκεύτηκαν 1 επαφές.",
+          starter: 'import csv\nFILE = "phone.csv"\nphone = {}\n# 1. φόρτωσε τις επαφές από το FILE (try / except FileNotFoundError)\n\nwhile True:\n    choice = input("\\n1.Προσθήκη 2.Αναζήτηση 3.Όλοι 0.Έξοδος: ")\n    if choice == "1":\n        name = input("Όνομα: ")\n        phone[name] = input("Τηλέφωνο: ")\n    elif choice == "2":\n        name = input("Όνομα: ")\n        print(phone.get(name, "Δεν βρέθηκε"))\n    elif choice == "3":\n        for name in sorted(phone):\n            print(f"{name}: {phone[name]}")\n    elif choice == "0":\n        # 2. αποθήκευσε τις επαφές στο FILE\n        break\n    else:\n        print("Λάθος επιλογή")\n',
+          hint: 'Φόρτωση: try: with open(FILE, newline="", encoding="utf-8") as f: for name, number in csv.reader(f): phone[name] = number — except FileNotFoundError: pass. Αποθήκευση: with open(FILE, "w", newline="", encoding="utf-8") as f: csv.writer(f).writerows(phone.items())',
+          post: SHOWCSV("phone.csv"),
+          tests: [{ in: ["2", "Άννα", "1", "Νίκος", "6972222222", "3", "0"], setup: WRITE("phone.csv", "Άννα,6971111111\r\n"),
+                    has: ["6971111111", /Νίκος:\s*6972222222/, /Αποθηκεύτηκαν\D*2/, "['Άννα', '6971111111']", "['Νίκος', '6972222222']"] },
+                  { in: ["3", "1", "Ελένη", "6973333333", "0"], setup: RM("phone.csv"), has: [/Αποθηκεύτηκαν\D*1/, "['Ελένη', '6973333333']"] }],
+          need: [{ re: /except\s+FileNotFoundError/, msg: "Την πρώτη φορά το phone.csv δεν υπάρχει: πιάσ' το με except FileNotFoundError:" }] },
+        { id: "m5i", tag: "Για το σπίτι", title: "Ημερολόγιο",
+          desc: "Ρώτα μια σημείωση και πρόσθεσέ τη στο τέλος του notes.txt (χωρίς να σβηστούν οι παλιές). Μετά τύπωσε όλο το αρχείο αριθμημένο: «1. …», «2. …».",
+          ex: "Σημείωση: Έγραψα κώδικα\n1. Αγόρασα βιβλία\n2. Διάβασα Python\n3. Έγραψα κώδικα",
+          starter: 'note = input("Σημείωση: ")\n',
+          hint: 'with open("notes.txt", "a", encoding="utf-8") as f: print(note, file=f). Μετά διάβασε με for i, line in enumerate(f, 1): print(f"{i}. {line.strip()}")',
+          tests: [{ in: ["Έγραψα κώδικα"], setup: WRITE("notes.txt", "Αγόρασα βιβλία\nΔιάβασα Python\n"), has: [/1\.\s*Αγόρασα βιβλία/, /2\.\s*Διάβασα Python/, /3\.\s*Έγραψα κώδικα/] },
+                  { in: ["Πρώτη μέρα"], setup: RM("notes.txt"), has: [/1\.\s*Πρώτη μέρα/], not: [/(^|\n)2\./] }],
+          need: [{ re: /["']a["']/, msg: "Πρόσθεσε στο τέλος με mode \"a\" (το \"w\" σβήνει τις παλιές)." }] }
+      ]
     }
   ];
 
@@ -207,7 +372,7 @@
   var RUNNER = [
     "import sys, traceback",
     "class _Limit(Exception): pass",
-    "def __run(code, inputs, interactive, setup, limit=1000000):",
+    "def __run(code, inputs, interactive, setup, post='', limit=1000000):",
     "    shown = []",
     "    printed = []",
     "    feed = [str(x) for x in inputs]",
@@ -250,6 +415,7 @@
     "            exec(c, ns)",
     "        finally:",
     "            sys.settrace(None)",
+    "        if post: exec(post, ns)",
     "    except _Limit:",
     "        err = {'type': 'Loop', 'msg': '', 'line': 0}",
     "    except SyntaxError as e:",
@@ -285,9 +451,9 @@
     loading.catch(function () { loading = null; setState("error"); });
     return loading;
   }
-  function runPy(code, inputs, interactive, setup) {
+  function runPy(code, inputs, interactive, setup, post) {
     var fn = PY.globals.get("__run");
-    var r = fn(code, inputs || [], !!interactive, setup || "");
+    var r = fn(code, inputs || [], !!interactive, setup || "", post || "");
     var o = r.toJs({ dict_converter: Object.fromEntries });
     r.destroy(); fn.destroy();
     return o;
@@ -324,6 +490,9 @@
       if (/string formatting|not all arguments converted/.test(m)) return "Έκανες πράξη (π.χ. %) σε κείμενο. Θυμήσου: το input() δίνει πάντα κείμενο (str). Μετάτρεψέ το με int() ή float(): n = int(input(...))";
       if (/can only concatenate str|unsupported operand type\(s\) for [+\-*/]+: '(int|float)' and 'str'|'str' and '(int|float)'/.test(m)) return "Ανακάτεψες κείμενο με αριθμό. Θυμήσου: το input() δίνει πάντα κείμενο (str). Μετάτρεψέ το με int() ή float() πριν κάνεις πράξεις.";
       if (/not supported between instances of 'str' and '(int|float)'|'(int|float)' and 'str'/.test(m)) return "Συγκρίνεις κείμενο με αριθμό. Μετάτρεψε την τιμή του input() με int() ή float().";
+      if (/'set' object is not subscriptable/.test(m)) return "Το σύνολο (set) δεν έχει θέσεις, οπότε δεν γράφεται s[0]. Για σειρά: sorted(s) ή list(s).";
+      if (/unhashable type: 'list'/.test(m)) return "Η λίστα δεν μπορεί να γίνει κλειδί λεξικού ή στοιχείο συνόλου (αλλάζει). Χρησιμοποίησε πλειάδα ( ).";
+      if (/write\(\) argument must be str/.test(m)) return "Το write() θέλει κείμενο. Γράψε f.write(str(x) + \"\\n\") ή απλώς print(x, file=f).";
       if (/'tuple' object does not support item assignment/.test(m)) return "Οι πλειάδες (tuple) δεν αλλάζουν! Αν θες να αλλάζεις στοιχεία, χρησιμοποίησε λίστα [ ].";
       if (/'NoneType'/.test(m)) return "Κάτι είναι None. Συχνό λάθος: το lst.sort() αλλάζει τη λίστα και επιστρέφει None. Μην γράφεις x = lst.sort().";
       if (/not callable/.test(m)) return "Προσπαθείς να «καλέσεις» κάτι που δεν είναι συνάρτηση. Μήπως έδωσες σε μεταβλητή όνομα όπως sum, max, list, print;";
@@ -340,9 +509,13 @@
     if (t === "AttributeError") {
       if (/'tuple' object has no attribute/.test(m)) return "Οι πλειάδες δεν έχουν append/remove/sort, γιατί δεν αλλάζουν. Χρησιμοποίησε λίστα.";
       if (/'NoneType'/.test(m)) return "Κάτι είναι None. Μήπως έγραψες x = lst.sort(); Το sort() επιστρέφει None.";
-      return "Αυτή η μέθοδος δεν υπάρχει για αυτόν τον τύπο. Έλεγξε την ορθογραφία (π.χ. append, όχι add).";
+      if (/'set' object has no attribute 'append'/.test(m)) return "Το σύνολο δεν έχει append (δεν έχει «τέλος»). Για σύνολο: s.add(x).";
+      return "Αυτή η μέθοδος δεν υπάρχει για αυτόν τον τύπο. Έλεγξε την ορθογραφία (π.χ. append για λίστα, add για σύνολο).";
     }
-    if (t === "KeyError") return "Το κλειδί δεν υπάρχει στο λεξικό.";
+    if (t === "KeyError") return "Το κλειδί δεν υπάρχει στο λεξικό. Για ασφαλή πρόσβαση: d.get(κλειδί, προεπιλογή), ή έλεγξε πρώτα με if κλειδί in d.";
+    if (t === "FileNotFoundError") return "Το αρχείο δεν υπάρχει. Έλεγξε το όνομα, ή «πιάσε» την περίπτωση με try / except FileNotFoundError.";
+    if (t === "UnsupportedOperation") return /not readable/.test(m) ? "Άνοιξες το αρχείο για γράψιμο (\"w\" ή \"a\") και προσπαθείς να διαβάσεις. Για ανάγνωση: open(όνομα, encoding=\"utf-8\")." : "Άνοιξες το αρχείο για ανάγνωση και προσπαθείς να γράψεις. Για γράψιμο: \"w\" (σβήνει) ή \"a\" (προσθέτει).";
+    if (t === "UnpicklingError" || t === "UnicodeDecodeError") return "Το αρχείο δεν διαβάζεται έτσι. Για pickle θέλει \"rb\" / \"wb\" (δυαδικό), για κείμενο encoding=\"utf-8\".";
     if (t === "RecursionError") return "Η συνάρτηση καλεί τον εαυτό της ξανά και ξανά χωρίς τέλος.";
     return "";
   }
@@ -364,7 +537,7 @@
       if (!nd.re.test(stripped)) { res.ok = false; res.lines.push({ c: "bad", s: "✘ " + nd.msg }); }
     });
     ex.tests.forEach(function (t, i) {
-      var r = runPy(code, t.in, false, ex.setup);
+      var r = runPy(code, t.in, false, t.setup != null ? t.setup : ex.setup, ex.post);
       var lbl = "Τεστ " + (i + 1) + (t.in.length ? " (είσοδος: " + t.in.map(function (v) { return v === "" ? "κενό" : v; }).join(", ") + ")" : "");
       if (r.err) {
         res.ok = false;
@@ -387,7 +560,7 @@
 
   // ======================= syntax highlighting =======================
   var KW = /^(False|None|True|and|as|assert|break|class|continue|def|del|elif|else|except|finally|for|from|global|if|import|in|is|lambda|nonlocal|not|or|pass|raise|return|try|while|with|yield)$/;
-  var BI = /^(print|input|int|float|str|len|range|sum|max|min|sorted|list|tuple|round|abs|type|enumerate|zip|bool|dict|set|reversed|any|all|open|isinstance)$/;
+  var BI = /^(print|input|int|float|str|len|range|sum|max|min|sorted|list|tuple|round|abs|type|enumerate|zip|bool|dict|set|reversed|any|all|open|isinstance|next|repr)$/;
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function hl(code) {
     var re = /(#[^\n]*)|([rbfuRBFU]{0,2}(?:"""[\s\S]*?(?:"""|$)|'''[\s\S]*?(?:'''|$)|"(?:\\.|[^"\\\n])*"?|'(?:\\.|[^'\\\n])*'?))|(\b\d+(?:\.\d+)?\b)|([A-Za-z_Ͱ-Ͽἀ-῿][\wͰ-Ͽἀ-῿]*)/g;

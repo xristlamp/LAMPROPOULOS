@@ -81,7 +81,7 @@
   .tcard .call {
     display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 900; font-size: 17px;
     background: #10b981; color: #1d1b2f; border: 2.5px solid var(--edge); border-radius: 12px; padding: 8px 14px; box-shadow: 3px 3px 0 var(--edge);
-    font-variant-numeric: tabular-nums; transition: transform .1s, box-shadow .1s;
+    overflow-wrap: anywhere; transition: transform .1s, box-shadow .1s;
   }
   .tcard .call:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--edge); }
   .tcard .call:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--edge); }
@@ -632,10 +632,10 @@
   var greet = h < 5 ? "Ξενύχτι; Μπράβο για τη μελέτη" : h < 12 ? "Καλημέρα" : h < 18 ? "Καλό απόγευμα" : "Καλησπέρα";
   $("hello").innerHTML = $("hello2").innerHTML = '<span class="wave">👋</span> ' + greet + '!';
   $("teacher").textContent = S.teacher;
-  var ph = S.phone ? String(S.phone).replace(/\D/g, "") : "";
+  var mail = S.email ? String(S.email).trim() : "";
   $("tcard").innerHTML = '<span class="ava" aria-hidden="true">🧑‍🏫</span>' +
     '<span><span class="k">Εκπαιδευτής</span><br><span class="nm">' + esc(S.teacherCard || S.teacher) + '</span></span>' +
-    (ph ? '<a class="call" href="tel:+30' + ph + '" aria-label="Κλήση ' + ph + '">📞 ' + ph.replace(/^(\d{3})(\d{3})(\d{4})$/, "$1 $2 $3") + '</a>' : '');
+    (mail ? '<a class="call" href="mailto:' + esc(mail) + '" aria-label="Email στο ' + esc(mail) + '">✉️ ' + esc(mail) + '</a>' : '');
   $("foot").innerHTML = "© " + new Date().getFullYear() + " " + esc(S.teacher) + " · φτιαγμένο με ☕ και κώδικα · 📱 <a href=\"" + A.url + "\" target=\"_blank\" rel=\"noopener\">Google Play</a>" +
     (A.appStore ? " · <a href=\"" + A.appStore + "\" target=\"_blank\" rel=\"noopener\">App Store</a>" : "");
 
