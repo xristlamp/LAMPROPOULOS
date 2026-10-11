@@ -18,7 +18,7 @@ window.SITE = {
     name: "Πληροφορική Γ' Λυκείου",
     tagline: "Μάθε Ψευδοκώδικα & Θεωρία για τις Πανελλαδικές Πληροφορικής, παίζοντας.",
     url: "https://play.google.com/store/apps/details?id=com.pliroforiki.app",
-    appStore: "https://apps.apple.com/gr/app/id6804878348",
+    appStore: "https://apps.apple.com/gr/app/%CF%80%CE%BB%CE%B7%CF%81%CE%BF%CF%86%CE%BF%CF%81%CE%B9%CE%BA%CE%AE-%CE%B3-%CE%BB%CF%85%CE%BA%CE%B5%CE%AF%CE%BF%CF%85/id6804878348",
     icon: "assets/app/icon.png",
     shots: ["assets/app/shot1.png", "assets/app/shot2.png", "assets/app/shot3.png"],
     features: [
