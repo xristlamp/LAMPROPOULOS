@@ -504,6 +504,7 @@
     setCode(saved != null ? saved : e.starter);
     root.el.querySelector(".py-checkbtn").hidden = !l;
     root.el.querySelector('[data-act="hint"]').hidden = !e.hint;
+    root.el.querySelector('[data-act="hint"]').textContent = "💡 Υπόδειξη";
     root.out.innerHTML = '<div class="dim">' + (l ? "Γράψε τη λύση σου και πάτα ▶ Τρέξε για να δοκιμάσεις, και ✔ Έλεγχος όταν είσαι έτοιμος/η." : "Το αποτέλεσμα θα εμφανιστεί εδώ.") + "</div>";
     markLine(0);
   }
@@ -564,7 +565,11 @@
         e.preventDefault(); ta.setSelectionRange(s - 4, s); insert(""); return;
       }
     });
+    // ο «ακροατής» μπαίνει μία φορά: το el μένει ίδιο σε κάθε render
+    if (el._pyBound) return;
+    el._pyBound = true;
     el.addEventListener("click", function (e) {
+      if (!el.querySelector(".py")) return;
       var b = e.target.closest("[data-lesson]");
       if (b) { state.lesson = b.dataset.lesson; state.exIdx = 0; store("py:lesson", state.lesson); var l = curLesson(); if (l) { var first = l.ex.findIndex(function (x) { return !api.isDone(key(x)); }); state.exIdx = first < 0 ? 0 : first; } render(el, null, api); return; }
       var li = e.target.closest(".py-list li.ms");
@@ -574,7 +579,12 @@
       var a = act.dataset.act;
       if (a === "run") run();
       else if (a === "check") doCheck();
-      else if (a === "hint") { var h = root.task.querySelector(".py-hint"); h.hidden = !h.hidden; }
+      else if (a === "hint") {
+        var h = root.task.querySelector(".py-hint");
+        h.hidden = !h.hidden;
+        act.textContent = h.hidden ? "💡 Υπόδειξη" : "🙈 Κρύψε την υπόδειξη";
+        if (!h.hidden) h.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
       else if (a === "reset") { if (root.ta.value === curEx().starter || confirm("Να σβηστεί ο κώδικάς σου και να μπει ξανά ο αρχικός;")) { setCode(curEx().starter); markLine(0); } }
     });
   }
