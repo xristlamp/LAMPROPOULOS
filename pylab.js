@@ -667,12 +667,30 @@
       }).join("") + "</ol>";
   }
 
+  // ---------- πού βρίσκεται η θεωρία κάθε άσκησης στις διαφάνειες ----------
+  // PDF κάθε μαθήματος στο site · REFS: άσκηση → διαφάνειες (= σελίδες του PDF)
+  var PDFS = { m1: "files/glyfada/python-01-gnorimia.pdf", m2: "files/glyfada/python-02-if-while-for.pdf", m3: "files/glyfada/python-03-listes.pdf",
+    m4: "files/glyfada/python-04-syn-lex.pdf", m5: "files/glyfada/python-05-arxeia.pdf" };
+  var REFS = {
+    m1a: [5, 8], m1b: [16, 18], m1c: [12, 13], m1d: [17, 18, 21], m1e: [22], m1f: [23, 24], m1g: [13], m1h: [25],
+    m2a: [5], m2b: [6], m2c: [10], m2d: [15, 22], m2e: [17], m2f: [19, 20, 23], m2g: [13, 24], m2h: [25], m2i: [13, 14],
+    m3a: [6, 8, 9], m3b: [10, 11], m3c: [12, 13, 23], m3d: [14, 24], m3e: [17], m3f: [19, 20], m3g: [18, 25], m3h: [10, 13],
+    m4a: [5], m4b: [6, 8], m4c: [9, 14], m4d: [10], m4e: [14], m4f: [7, 19], m4g: [14, 20], m4h: [21], m4i: [14], m4j: [15],
+    m5a: [6, 7], m5b: [9], m5c: [10], m5d: [15], m5e: [16, 18, 20], m5f: [11, 17, 21], m5g: [12], m5h: [22], m5i: [6, 7]
+  };
+  function refHTML(l, e) {
+    var pages = REFS[e.id], pdf = PDFS[l.id];
+    if (!pages) return "";
+    var links = pages.map(function (n) { return pdf ? '<a href="' + pdf + "#page=" + n + '" target="_blank" rel="noopener">' + n + "</a>" : String(n); }).join(", ");
+    return '<div class="sl-ref">📖 Στις διαφάνειες: <b>Μάθημα ' + l.num + "</b> · " + (pages.length > 1 ? "διαφάνειες " : "διαφάνεια ") + links + "</div>";
+  }
+
   function loadEx() {
     var e = curEx(), l = curLesson(), ok = l && api.isDone(key(e));
     root.task.innerHTML =
       '<div class="top" style="display:flex;gap:8px;flex-wrap:wrap">' + (l ? '<span class="pill">Μάθημα ' + l.num + "</span>" : "") + '<span class="pill new">' + esc(e.tag) + "</span>" +
         (l ? '<span class="pill">+' + XP + " XP</span>" : "") + (ok ? '<span class="pill ok">✓ Λύθηκε</span>' : "") + "</div>" +
-      "<h3>" + esc(e.title) + "</h3><p>" + esc(e.desc) + "</p>" +
+      "<h3>" + esc(e.title) + "</h3><p>" + esc(e.desc) + "</p>" + (l ? refHTML(l, e) : "") +
       (e.ex ? '<div class="py-exlbl">Παράδειγμα εκτέλεσης</div><pre class="py-ex">' + esc(e.ex) + "</pre>" : "") +
       '<div class="py-hint" hidden>💡 ' + esc(e.hint || "") + "</div>";
     var saved = store("py:code:" + e.id);
