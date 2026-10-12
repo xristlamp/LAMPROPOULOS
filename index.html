@@ -770,7 +770,8 @@
   var q = $("q");
   q.oninput = renderPanel;
   document.addEventListener("keydown", function (e) {
-    if (e.key === "/" && current && document.activeElement !== q) { e.preventDefault(); q.focus(); }
+    var a = document.activeElement, typing = a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA" || a.isContentEditable);
+    if (e.key === "/" && current && !typing) { e.preventDefault(); q.focus(); }
   });
   function norm(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
   function match(term, parts) { return !term || norm(parts.join(" ")).indexOf(term) >= 0; }
