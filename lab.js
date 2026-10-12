@@ -1517,6 +1517,19 @@
   // έγινε η εντολή re ΜΕΤΑ από το σημάδι mark (μετρά θέσεις στο ιστορικό)
   function after(s, mark, re) { return s[mark] != null && s.hist.slice(s[mark]).some(function (l) { return re.test(l); }); }
   function markOnce(s, mark, ok) { if (ok && s[mark] == null) s[mark] = s.hist.length; return ok; }
+  // ο φάκελος cli_test οπουδήποτε μέσα στα Documents (π.χ. Documents\LS_Eponymo\cli_test), σχετικά με το σπίτι
+  function cliTest(s) {
+    var docs = node(s, ["Documents"]), hit = null;
+    if (!docs || docs.n.t !== "d") return null;
+    (function walk(n, rel) {
+      Object.keys(n.c).forEach(function (k) {
+        if (hit || n.c[k].t !== "d") return;
+        if (k.toLowerCase() === "cli_test") hit = rel.concat(k);
+        else if (rel.length < 4) walk(n.c[k], rel.concat(k));
+      });
+    })(docs.n, ["Documents"]);
+    return hit;
+  }
   // πλήρες όνομα ή χωρίς .exe
   function exeNames(n) { return n ? [n, n.replace(/\.exe$/i, "")] : []; }
   // το αρχείο έχει (τουλάχιστον) αυτές τις γραμμές δεδομένων, όπως κι αν είναι τα κενά
@@ -1573,12 +1586,12 @@
             { q: "Τύπος συστήματος (System Type)", a: [/^x64/] }
           ] },
         { id: "e1d", type: "term", os: "windows", tag: "Εργαστήριο 2", title: "Ίδια δουλειά, δύο κελύφη",
-          desc: "Στο εργαστήριο έφτιαξες με το ποντίκι τον φάκελο gui_test και μέσα το hello.txt. Κάνε τώρα την ίδια δουλειά μόνο με εντολές: στα Έγγραφα (Documents) φτιάξε τον φάκελο cli_test με το αρχείο hello.txt που γράφει hello.",
+          desc: "Στο εργαστήριο έφτιαξες με το ποντίκι τον φάκελο gui_test και μέσα το hello.txt. Κάνε τώρα την ίδια δουλειά μόνο με εντολές: στα Έγγραφα (Documents) φτιάξε τον φάκελο cli_test με το αρχείο hello.txt που γράφει hello. Μπορείς να τον φτιάξεις και μέσα σε δικό σου φάκελο, π.χ. Documents\\LS_Eponymo\\cli_test, όπως στη διαφάνεια.",
           steps: [
             { t: "Πήγαινε στον φάκελο Documents", hint: ["cd Documents"], check: function (s) { return inDir(s, ["Documents"]); } },
-            { t: "Φτιάξε τον φάκελο cli_test", hint: ["mkdir cli_test"], check: function (s) { return isDir(s, ["Documents", "cli_test"]); } },
-            { t: "Μπες μέσα και φτιάξε το hello.txt που γράφει hello", hint: ["cd cli_test", "echo hello > hello.txt"], check: function (s) { return fileHas(s, ["Documents", "cli_test", "hello.txt"], "hello"); } },
-            { t: "Δες τι έχει ο φάκελος και τι γράφει το αρχείο", hint: ["dir", "type hello.txt"], check: function (s) { return fileHas(s, ["Documents", "cli_test", "hello.txt"], "hello") && H(s, /^dir\b/i) && H(s, /^type\s+.*hello\.txt/i); } }
+            { t: "Φτιάξε τον φάκελο cli_test", hint: ["mkdir cli_test"], check: function (s) { return !!cliTest(s); } },
+            { t: "Μπες μέσα και φτιάξε το hello.txt που γράφει hello", hint: ["cd cli_test", "echo hello > hello.txt"], check: function (s) { var d = cliTest(s); return !!d && fileHas(s, d.concat("hello.txt"), "hello"); } },
+            { t: "Δες τι έχει ο φάκελος και τι γράφει το αρχείο", hint: ["dir", "type hello.txt"], check: function (s) { var d = cliTest(s); return !!d && fileHas(s, d.concat("hello.txt"), "hello") && H(s, /^dir\b/i) && H(s, /^type\s+.*hello\.txt/i); } }
           ] },
         { id: "e1e", type: "term", os: "linux", tag: "Εργαστήριο 3", title: "Πρώτη γνωριμία με το Linux",
           desc: "Όπως στο jslinux: δοκίμασε τις βασικές εντολές του Linux και γράψε τι βρήκες. Σε κάθε εντολή σκέψου ποια είναι η αντίστοιχη των Windows.",
@@ -2285,7 +2298,33 @@
       '<div class="top" style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill">Εργαστήριο ' + l.num + '</span><span class="pill new">' + esc(e.tag) + "</span>" +
         (e.type === "gantt" ? '<span class="pill warn">' + ALG[e.alg] + (e.alg === "rr" ? " · κβάντο " + e.q : "") + "</span>" : "") +
         '<span class="pill">+' + EX_XP + " XP</span>" + (isDone(e) ? '<span class="pill ok">✓ Λύθηκε</span>' : "") + "</div>" +
-      "<h3>" + esc(e.title) + "</h3><p>" + esc(e.desc) + "</p>";
+      "<h3>" + esc(e.title) + "</h3><p>" + esc(e.desc) + "</p>" + refHTML(e);
+  }
+
+  // ---------- πού βρίσκεται η θεωρία κάθε άσκησης στις διαφάνειες ----------
+  // DECKS: όνομα και PDF στο site (null = δεν έχει ανέβει ακόμα)  ·  REFS: άσκηση → [deck, [διαφάνειες]]
+  var DECKS = {
+    "1t": ["Θεωρία 1", "files/markopoulo/sls-01-theoria.pdf"], "1p": ["Πρακτικό 1", "files/markopoulo/sls-01-praktiko.pdf"],
+    "2t": ["Θεωρία 2", "files/markopoulo/sls-02-theoria.pdf"], "2p": ["Πρακτικό 2", "files/markopoulo/sls-02-praktiko.pdf"],
+    "3": ["Εργαστήριο 3", null], "4": ["Εργαστήριο 4", null]
+  };
+  var REFS = {
+    e1a: ["1t", [6, 9]], e1b: ["1t", [7]], e1c: ["1p", [6]], e1d: ["1p", [10]], e1e: ["1p", [16]], e1f: ["1t", [10, 11]], e1g: ["1t", [13, 14]], e1h: ["1t", [8]],
+    e1i: ["1p", [8]], e1j: ["1p", [9]], e1k: ["1p", [11]], e1l: ["1p", [12]], e1m: ["1p", [17]], e1n: ["1p", [18]], e1o: ["1p", [19]],
+    e2a: ["2t", [6, 7]], e2b: ["2t", [8]], e2c: ["2p", [4, 13]], e2d: ["2p", [5, 6]], e2e: ["2p", [6, 13]], e2f: ["2t", [10, 12]], e2g: ["2p", [16, 17]], e2h: ["2t", [10, 15]],
+    e2i: ["2p", [6]], e2j: ["2p", [14]], e2k: ["2p", [10]], e2l: ["2p", [12, 17]], e2m: ["2p", [16]], e2n: ["2p", [15]], e2o: ["2p", [15]],
+    e3a: ["3", [3]], e3b: ["3", [7, 8, 9]], e3c: ["3", [10, 11]], e3d: ["3", [5]], e3e: ["3", [13, 14]], e3f: ["3", [15, 16]], e3g: ["3", [5, 6, 24]], e3h: ["3", [17]], e3i: ["3", [18]],
+    e3j: ["3", [20]], e3k: ["3", [20]], e3l: ["3", [21]], e3m: ["3", [5, 21]], e3n: ["3", [21]], e3o: ["3", [22]],
+    e4a: ["4", [3]], e4b: ["4", [4, 5]], e4c: ["4", [7, 8]], e4d: ["4", [9]], e4e: ["4", [10, 11]], e4f: ["4", [13, 14]], e4g: ["4", [15, 16]], e4h: ["4", [6, 17]], e4i: ["4", [21]], e4j: ["4", [5]],
+    e4k: ["4", [18]], e4l: ["4", [18]], e4m: ["4", [19]], e4n: ["4", [19]], e4o: ["4", [20]], e4p: ["4", [20]]
+  };
+  function refHTML(e) {
+    var r = REFS[e.id], d = r && DECKS[r[0]];
+    if (!d) return "";
+    var pages = r[1].map(function (n) {
+      return d[1] ? '<a href="' + d[1] + "#page=" + n + '" target="_blank" rel="noopener">' + n + "</a>" : String(n);
+    }).join(", ");
+    return '<div class="sl-ref">📖 Στις διαφάνειες: <b>' + esc(d[0]) + "</b> · " + (r[1].length > 1 ? "διαφάνειες " : "διαφάνεια ") + pages + "</div>";
   }
 
   function loadEx() {
