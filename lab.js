@@ -1,8 +1,10 @@
 /*
-  ΕΡΓΑΣΤΗΡΙΟ — εξομοιωτής Γραμμής εντολών (Windows) και Τερματικού (Linux) με αποστολές.
+  ΕΡΓΑΣΤΗΡΙΟ ΛΣ — ασκήσεις ανά εργαστήριο (κουίζ, αποστολές στο τερματικό, διαγράμματα Gantt)
+  και ελεύθερος εξομοιωτής Γραμμής εντολών (Windows) και Τερματικού (Linux) με αποστολές.
   Όλα τρέχουν μέσα στον browser: τίποτα δεν αγγίζει τον πραγματικό υπολογιστή του μαθητή.
 
-  Για να προσθέσεις αποστολή, δες τις λίστες MISSIONS.windows / MISSIONS.linux πιο κάτω.
+  Νέο εργαστήριο ή άσκηση: δες τη λίστα LESSONS πιο κάτω (οδηγίες ακριβώς από πάνω της).
+  Αποστολές του ελεύθερου τερματικού: λίστες MISSIONS.windows / MISSIONS.linux.
   Κάθε αποστολή: id (μοναδικό), ico, title, desc, hint (η εντολή-βοήθεια), check (πότε θεωρείται ολοκληρωμένη).
 */
 (function () {
@@ -1094,7 +1096,7 @@
   function newSim(os) {
     var win = os === "windows";
     var s = { os: os, win: win, root: win ? winFS() : lnxFS(), cwd: win ? ["Users", USER] : ["home", USER], home: win ? ["Users", USER] : ["home", USER],
-      procs: win ? winProcs() : lnxProcs(), ran: {}, flags: {}, hist: [], hi: 0, log: [], busy: false, color: null };
+      procs: win ? winProcs() : lnxProcs(), ran: {}, flags: {}, hist: [], hi: 0, log: [], busy: false, color: null, after: missionCheck };
     banner(s);
     return s;
   }
@@ -1103,7 +1105,11 @@
 
   function finish(s, view) {
     if (view && s === current) { view.line.style.visibility = ""; view.ps.innerHTML = promptHTML(s); applyColor(s); root.scr.scrollTop = root.scr.scrollHeight; }
-    // έλεγχος αποστολών
+    if (s.after) s.after(s);
+  }
+
+  // έλεγχος αποστολών (ελεύθερο τερματικό)
+  function missionCheck(s) {
     var ms = MISSIONS[s.os], newly = [];
     ms.forEach(function (m) { if (!api.isDone(key(m)) && m.check(s)) newly.push(m); });
     newly.forEach(function (m) {
@@ -1128,7 +1134,7 @@
 
   var selected = {};
   function renderMissions() {
-    if (!root || !current) return;
+    if (!root || !current || !root.list) return;
     var ms = MISSIONS[current.os], done = ms.filter(function (m) { return api.isDone(key(m)); }).length;
     var sel = selected[current.os];
     if (sel == null) { sel = ms.findIndex ? ms.findIndex(function (m) { return !api.isDone(key(m)); }) : 0; }
@@ -1147,6 +1153,62 @@
 
   var CHIPS = { windows: ["help", "cls", "dir", "cd ..", "tasklist", "systeminfo"], linux: ["help", "clear", "ls", "pwd", "cd ..", "ps aux"] };
 
+  // το «παράθυρο» του τερματικού (ίδιο στο ελεύθερο τερματικό και στις ασκήσεις)
+  function vtHTML(s) {
+    return '<div class="vt ' + (s.win ? "vt-win" : "vt-lnx") + '">' +
+      '<div class="vt-bar">' + (s.win
+        ? '<span class="vt-ttl">▣ C:\\WINDOWS\\system32\\cmd.exe</span><span class="vt-ctl">─ ☐ ✕</span>'
+        : '<span class="vt-dots"><i></i><i></i><i></i></span><span class="vt-ttl">' + USER + "@saek-pc: ~</span>") + "</div>" +
+      '<div class="vt-scr"><div class="vt-log"></div><div class="vt-line"><span class="vt-ps"></span><input class="vt-in" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-label="Γράψε εντολή"></div></div>' +
+      '<div class="vt-chips">' + CHIPS[s.os].map(function (c) { return '<button type="button" data-run="' + esc(c) + '">' + esc(c) + "</button>"; }).join("") +
+        '<span class="vt-keys">↑↓ ιστορικό · Tab συμπλήρωση</span></div>' +
+    "</div>";
+  }
+
+  function bindVT(el) {
+    root = {
+      el: el, log: el.querySelector(".vt-log"), scr: el.querySelector(".vt-scr"), inp: el.querySelector(".vt-in"), ps: el.querySelector(".vt-ps"),
+      line: el.querySelector(".vt-line"), list: el.querySelector(".ms-list"), count: el.querySelector("#lab-count"), bar: el.querySelector("#lab-bar")
+    };
+    root.log.innerHTML = current.log.join("");
+    root.ps.innerHTML = promptHTML(current);
+    root.line.style.visibility = current.busy ? "hidden" : "";
+    applyColor(current);
+    root.scr.scrollTop = root.scr.scrollHeight;
+    var view = root;
+
+    root.scr.addEventListener("click", function () {
+      if (window.getSelection && String(window.getSelection())) return;
+      try { view.inp.focus({ preventScroll: true }); } catch (e) { view.inp.focus(); }
+    });
+    root.inp.addEventListener("keydown", function (e) {
+      var s = current;
+      if (e.key === "c" && e.ctrlKey && !String(window.getSelection())) {
+        e.preventDefault();
+        if (s.busy) { s.busy = false; clearTimeout(s.timer); print(s, "^C"); finish(s, view); return; }
+        echoPrompt(s, view.inp.value + "^C"); view.inp.value = ""; return;
+      }
+      if (e.key === "l" && e.ctrlKey) { e.preventDefault(); s.log = []; view.log.innerHTML = ""; return; }
+      if (s.busy) { e.preventDefault(); return; }
+      if (e.key === "Enter") { var v = view.inp.value; view.inp.value = ""; runLine(s, v, view); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); if (s.hi > 0) { s.hi--; view.inp.value = s.hist[s.hi] || ""; } }
+      else if (e.key === "ArrowDown") { e.preventDefault(); if (s.hi < s.hist.length) { s.hi++; view.inp.value = s.hist[s.hi] || ""; } }
+      else if (e.key === "Tab") { e.preventDefault(); complete(s); }
+    });
+    el.querySelectorAll("[data-run]").forEach(function (b) {
+      b.addEventListener("click", function () { if (current.busy) return; runLine(current, b.dataset.run, view); });
+    });
+    return view;
+  }
+
+  // βάζει μια εντολή-βοήθεια στη γραμμή του τερματικού
+  function fillCmd(c) {
+    if (!root) return;
+    root.inp.value = c.indexOf("<PID>") >= 0 ? c.replace("<PID>", "") : c;
+    try { root.inp.focus({ preventScroll: true }); } catch (x) { root.inp.focus(); }
+  }
+
+  // ελεύθερο τερματικό με τις 12 + 12 αποστολές
   function mount(el, oses) {
     var os = oses.indexOf(store("labOS")) >= 0 ? store("labOS") : oses[0];
     if (!sims[os]) sims[os] = newSim(os);
@@ -1161,56 +1223,18 @@
           '<span class="lab-sub">' + (win ? "Γραμμή εντολών (cmd)" : "Τερματικό (bash)") + " · εξομοιωτής για εξάσκηση</span>" +
           '<button type="button" class="btn check lab-reset" title="Ξεκινά ο υπολογιστής από την αρχή (οι αποστολές που έκανες μένουν)">↺ Επανεκκίνηση</button>' +
         "</div>" +
-        '<div class="lab-grid">' +
-          '<div class="vt ' + (win ? "vt-win" : "vt-lnx") + '">' +
-            '<div class="vt-bar">' + (win
-              ? '<span class="vt-ttl">▣ C:\\WINDOWS\\system32\\cmd.exe</span><span class="vt-ctl">─ ☐ ✕</span>'
-              : '<span class="vt-dots"><i></i><i></i><i></i></span><span class="vt-ttl">' + USER + "@saek-pc: ~</span>") + "</div>" +
-            '<div class="vt-scr"><div class="vt-log"></div><div class="vt-line"><span class="vt-ps"></span><input class="vt-in" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-label="Γράψε εντολή"></div></div>' +
-            '<div class="vt-chips">' + CHIPS[os].map(function (c) { return '<button type="button" data-run="' + esc(c) + '">' + esc(c) + "</button>"; }).join("") +
-              '<span class="vt-keys">↑↓ ιστορικό · Tab συμπλήρωση</span></div>' +
-          "</div>" +
+        '<div class="lab-grid">' + vtHTML(current) +
           '<aside class="missions sticker"><div class="ms-head"><b>🎯 Αποστολές</b><span class="pill" id="lab-count"></span></div>' +
             '<div class="xpbar"><i id="lab-bar"></i></div><ol class="ms-list"></ol>' +
             '<button type="button" class="ms-reset">↺ ξεκίνα τις αποστολές από την αρχή</button></aside>' +
         "</div>" +
       "</div>";
 
-    root = {
-      el: el, log: el.querySelector(".vt-log"), scr: el.querySelector(".vt-scr"), inp: el.querySelector(".vt-in"), ps: el.querySelector(".vt-ps"),
-      line: el.querySelector(".vt-line"), list: el.querySelector(".ms-list"), count: el.querySelector("#lab-count"), bar: el.querySelector("#lab-bar")
-    };
-    root.log.innerHTML = current.log.join("");
-    root.ps.innerHTML = promptHTML(current);
-    root.line.style.visibility = current.busy ? "hidden" : "";
-    applyColor(current);
-    root.scr.scrollTop = root.scr.scrollHeight;
+    bindVT(el);
     renderMissions();
-    var view = root;
 
-    root.scr.addEventListener("click", function () {
-      if (window.getSelection && String(window.getSelection())) return;
-      try { root.inp.focus({ preventScroll: true }); } catch (e) { root.inp.focus(); }
-    });
-    root.inp.addEventListener("keydown", function (e) {
-      var s = current;
-      if (e.key === "c" && e.ctrlKey && !String(window.getSelection())) {
-        e.preventDefault();
-        if (s.busy) { s.busy = false; clearTimeout(s.timer); print(s, "^C"); finish(s, view); return; }
-        echoPrompt(s, root.inp.value + "^C"); root.inp.value = ""; return;
-      }
-      if (e.key === "l" && e.ctrlKey) { e.preventDefault(); s.log = []; root.log.innerHTML = ""; return; }
-      if (s.busy) { e.preventDefault(); return; }
-      if (e.key === "Enter") { var v = root.inp.value; root.inp.value = ""; runLine(s, v, view); }
-      else if (e.key === "ArrowUp") { e.preventDefault(); if (s.hi > 0) { s.hi--; root.inp.value = s.hist[s.hi] || ""; } }
-      else if (e.key === "ArrowDown") { e.preventDefault(); if (s.hi < s.hist.length) { s.hi++; root.inp.value = s.hist[s.hi] || ""; } }
-      else if (e.key === "Tab") { e.preventDefault(); complete(s); }
-    });
     el.querySelectorAll("[data-os]").forEach(function (b) {
       b.addEventListener("click", function () { store("labOS", b.dataset.os); mount(el, oses); });
-    });
-    el.querySelectorAll("[data-run]").forEach(function (b) {
-      b.addEventListener("click", function () { if (current.busy) return; runLine(current, b.dataset.run, view); });
     });
     el.querySelector(".lab-reset").addEventListener("click", function () {
       clearTimeout(current.timer); sims[current.os] = newSim(current.os); mount(el, oses);
@@ -1222,12 +1246,7 @@
     });
     root.list.addEventListener("click", function (e) {
       var code = e.target.closest("[data-cmd]");
-      if (code) {
-        var c = code.dataset.cmd;
-        root.inp.value = c.indexOf("<PID>") >= 0 ? c.replace("<PID>", "") : c;
-        try { root.inp.focus({ preventScroll: true }); } catch (x) { root.inp.focus(); }
-        return;
-      }
+      if (code) { fillCmd(code.dataset.cmd); return; }
       if (e.target.closest(".ms-hint")) { var h = e.target.closest("li").querySelector(".ms-help"); h.hidden = !h.hidden; return; }
       var li = e.target.closest("li.ms");
       if (li && e.target.closest(".ms-row")) { var i = +li.dataset.i; selected[current.os] = selected[current.os] === i ? -1 : i; renderMissions(); }
@@ -1253,9 +1272,841 @@
     }
   }
 
+  // ================= ΧΡΟΝΟΔΡΟΜΟΛΟΓΗΣΗ (για τις ασκήσεις Gantt) =================
+  // procs: [[όνομα, άφιξη, εκτέλεση, προτεραιότητα?], ...]
+  // alg: fcfs | sjf | srtf | rr | prio | prio-p   (στο rr και το κβάντο q)
+  // Συμβάσεις: σε ισοπαλία κερδίζει όποια ήρθε πρώτη (και μετά η μικρότερη Pi).
+  // Στους αλγορίθμους με διακοπή, σε ισοπαλία συνεχίζει αυτή που ήδη τρέχει.
+  // Στο Round Robin όποια φτάνει μπαίνει στην ουρά πριν από αυτήν που μόλις διακόπηκε.
+  function schedule(procs, alg, q) {
+    var n = procs.length, rem = procs.map(function (p) { return p[2]; }), fin = [], st = [], cells = [], ctx = [];
+    var t = 0, cur = -1, left = 0, queue = [], done = 0, pre = alg === "srtf" || alg === "prio-p";
+    function arrived(i) { return procs[i][1] <= t && rem[i] > 0; }
+    function key(i) { return alg === "sjf" ? procs[i][2] : alg === "srtf" ? rem[i] : /^prio/.test(alg) ? procs[i][3] : procs[i][1]; }
+    function best(c) { return c.reduce(function (b, i) { return b < 0 || key(i) < key(b) || (key(i) === key(b) && (procs[i][1] < procs[b][1] || (procs[i][1] === procs[b][1] && i < b))) ? i : b; }, -1); }
+    for (var i = 0; i < n; i++) if (procs[i][1] === 0) queue.push(i);
+    while (done < n && t < 500) {
+      var c = [];
+      for (i = 0; i < n; i++) if (arrived(i)) c.push(i);
+      var fresh = false, snap = null;
+      if (alg === "rr") {
+        if (cur < 0 && queue.length) { cur = queue.shift(); left = q; fresh = true; snap = [cur].concat(queue); }
+      } else if (pre) {
+        var b = best(c);
+        if (cur >= 0 && rem[cur] > 0 && key(cur) <= key(b)) b = cur;
+        fresh = b !== cur; cur = b;
+      } else if (cur < 0 && c.length) { cur = best(c); fresh = true; }
+      ctx.push({ fresh: fresh, cand: c, cur: cur, queue: snap, rem: rem.slice() });
+      cells.push(cur >= 0 ? cur : null);
+      if (cur >= 0) {
+        if (st[cur] == null) st[cur] = t;
+        rem[cur]--; left--;
+      }
+      t++;
+      if (alg === "rr") for (i = 0; i < n; i++) if (procs[i][1] === t) queue.push(i);
+      if (cur >= 0 && rem[cur] === 0) { fin[cur] = t; done++; cur = -1; }
+      else if (alg === "rr" && cur >= 0 && left === 0) { queue.push(cur); cur = -1; }
+    }
+    var wait = procs.map(function (p, i) { return fin[i] - p[1] - p[2]; });
+    return { cells: cells, start: st, fin: fin, wait: wait, avg: wait.reduce(function (a, b) { return a + b; }, 0) / n, ctx: ctx };
+  }
+
+  // ================= ΑΣΚΗΣΕΙΣ ΑΝΑ ΕΡΓΑΣΤΗΡΙΟ =================
+  /*
+    Κάθε εργαστήριο (LESSONS) έχει λίστα ασκήσεων ex. Κοινά πεδία: id (μοναδικό), tag, title, desc, hint.
+    Τρία είδη (type):
+      "quiz"  — opts: [επιλογές για όλες], items: [{ q: ερώτηση, a: σωστή επιλογή, opts?: δικές της επιλογές, why?: εξήγηση }]
+                ή αριθμητική ερώτηση: { q, num: 4.75 }
+      "term"  — os: "windows" | "linux", steps: [{ t: τι κάνει, hint: [εντολές], check: function (s) {...} }],
+                asks: [{ q: ερώτηση, a: [σωστές απαντήσεις: κείμενο ή /regex/] ή function (s) { return [...] } }]
+      "gantt" — alg: fcfs | sjf | srtf | rr | prio | prio-p, q: κβάντο (για rr),
+                procs: [["P1", άφιξη, εκτέλεση, προτεραιότητα?], ...]   (η λύση βγαίνει αυτόματα)
+  */
+  var EX_XP = 20;
+  var PCOL = ["#4d7cfe", "#10b981", "#ffd23f", "#ff6b9d", "#a78bfa", "#ff9f43"];
+
+  // βοηθοί για τους ελέγχους των βημάτων
+  function H(s, re) { return s.hist.some(function (l) { return re.test(l); }); }
+  function count(s, name) { return s.procs.list.filter(function (p) { return p.name.toLowerCase() === name; }).length; }
+  function pids(s, name) { return s.procs.list.filter(function (p) { return p.name.toLowerCase() === name; }).map(function (p) { return p.pid; }); }
+  function node(s, rel) { return at(s, s.home.concat(rel)); }
+  function inDir(s, rel) { return isInside(s.cwd, s.home.concat(rel)); }
+  function isDir(s, rel) { var r = node(s, rel); return !!(r && r.n.t === "d"); }
+  function fileHas(s, rel, txt) { var r = node(s, rel); return !!(r && r.n.t === "f" && r.n.x.toLowerCase().indexOf(txt) >= 0); }
+
+  var LESSONS = [
+    {
+      id: "e1", num: 1, title: "Τι είναι το Λειτουργικό Σύστημα", short: "Τι είναι το ΛΣ", date: "2026-10-06",
+      ex: [
+        { id: "e1a", type: "quiz", tag: "Ζέσταμα", title: "Ποια αρμοδιότητα δουλεύει;",
+          desc: "Για κάθε σενάριο διάλεξε ποια από τις 6 δουλειές του ΛΣ είναι υπεύθυνη.",
+          hint: "Οι 6 δουλειές: διεργασίες & CPU, μνήμη, αρχεία, συσκευές, ασφάλεια, διεπαφή. Ρώτα τον εαυτό σου: ποιον «πόρο» χρησιμοποιεί κάθε σενάριο;",
+          opts: ["Διεργασίες & CPU", "Κύρια μνήμη (RAM)", "Αρχεία & φάκελοι", "Συσκευές Ε/Ε", "Ασφάλεια & χρήστες", "Διεπαφή χρήστη"],
+          items: [
+            { q: "Συνδέεις ποντίκι USB και σε 3 δευτερόλεπτα δουλεύει.", a: "Συσκευές Ε/Ε", why: "Το ΛΣ βρήκε και φόρτωσε τον οδηγό (driver) της συσκευής." },
+            { q: "Ακούς Spotify ενώ γράφεις στο Word.", a: "Διεργασίες & CPU", why: "Το ΛΣ μοιράζει τον επεξεργαστή στις δύο διεργασίες, με γρήγορη εναλλαγή." },
+            { q: "Ο αδερφός σου δεν βλέπει τα αρχεία του λογαριασμού σου.", a: "Ασφάλεια & χρήστες", why: "Κάθε λογαριασμός έχει δικά του δικαιώματα πρόσβασης." },
+            { q: "Ανοίγεις 40 καρτέλες και ο υπολογιστής «σέρνεται».", a: "Κύρια μνήμη (RAM)", why: "Κάθε καρτέλα θέλει χώρο στη μνήμη και κάποτε η RAM δεν φτάνει." },
+            { q: "Αποθηκεύεις την εργασία σου στον φάκελο Έγγραφα.", a: "Αρχεία & φάκελοι", why: "Το ΛΣ οργανώνει τον δίσκο σε σύστημα αρχείων (π.χ. NTFS)." },
+            { q: "Κάνεις διπλό κλικ σε ένα εικονίδιο και ανοίγει παράθυρο.", a: "Διεπαφή χρήστη", why: "Τα παράθυρα και τα εικονίδια είναι το γραφικό κέλυφος (GUI)." }
+          ] },
+        { id: "e1b", type: "quiz", tag: "Άσκηση", title: "Πυρήνας ή κέλυφος;",
+          desc: "Για κάθε περιγραφή διάλεξε αν αφορά τον πυρήνα (kernel) ή το κέλυφος (shell) του ΛΣ.",
+          hint: "Ο πυρήνας είναι η «καρδιά» που μιλά απευθείας με το υλικό. Το κέλυφος είναι αυτό που βλέπει και χρησιμοποιεί ο χρήστης: γραφικό (GUI) ή γραμμή εντολών (CLI).",
+          opts: ["Πυρήνας (kernel)", "Κέλυφος (shell)"],
+          items: [
+            { q: "Φορτώνεται πρώτος και μένει πάντα στη μνήμη.", a: "Πυρήνας (kernel)" },
+            { q: "Η Γραμμή εντολών (cmd) των Windows.", a: "Κέλυφος (shell)" },
+            { q: "Έχει πλήρη πρόσβαση στο υλικό.", a: "Πυρήνας (kernel)" },
+            { q: "Τα παράθυρα, τα εικονίδια και η γραμμή εργασιών.", a: "Κέλυφος (shell)" },
+            { q: "Το bash στο τερματικό του Linux.", a: "Κέλυφος (shell)" },
+            { q: "Εξυπηρετεί τις κλήσεις συστήματος των εφαρμογών.", a: "Πυρήνας (kernel)", why: "Οι κλήσεις συστήματος είναι ο μόνος «νόμιμος» τρόπος μιας εφαρμογής να ζητήσει κάτι από τον πυρήνα." }
+          ] },
+        { id: "e1c", type: "term", os: "windows", tag: "Εργαστήριο 1", title: "Η κάρτα συστήματος",
+          desc: "Η κάρτα συστήματος του εργαστηρίου, αλλά αυτή τη φορά από τη Γραμμή εντολών. Τρέξε τις εντολές, βρες τα στοιχεία στην έξοδο και γράψε τα στα κουτάκια.",
+          steps: [
+            { t: "Δες όλα τα στοιχεία του ΛΣ και του υλικού", hint: ["systeminfo"], check: function (s) { return s.ran.systeminfo; } },
+            { t: "Δες την έκδοση των Windows", hint: ["ver"], check: function (s) { return s.ran.ver; } },
+            { t: "Δες το όνομα του υπολογιστή", hint: ["hostname"], check: function (s) { return s.ran.hostname; } }
+          ],
+          asks: [
+            { q: "Όνομα υπολογιστή (Host Name)", a: ["SAEK-PC07"] },
+            { q: "Λειτουργικό σύστημα (OS Name)", a: [/windows\s*11/] },
+            { q: "Build του ΛΣ (ο αριθμός μετά το «Build»)", a: ["22631"] },
+            { q: "Συνολική μνήμη RAM σε MB", a: [/^16[.,]?183(\s*mb)?$/] },
+            { q: "Τύπος συστήματος (System Type)", a: [/^x64/] }
+          ] },
+        { id: "e1d", type: "term", os: "windows", tag: "Εργαστήριο 2", title: "Ίδια δουλειά, δύο κελύφη",
+          desc: "Στο εργαστήριο έφτιαξες με το ποντίκι τον φάκελο gui_test και μέσα το hello.txt. Κάνε τώρα την ίδια δουλειά μόνο με εντολές: στα Έγγραφα (Documents) φτιάξε τον φάκελο cli_test με το αρχείο hello.txt που γράφει hello.",
+          steps: [
+            { t: "Πήγαινε στον φάκελο Documents", hint: ["cd Documents"], check: function (s) { return inDir(s, ["Documents"]); } },
+            { t: "Φτιάξε τον φάκελο cli_test", hint: ["mkdir cli_test"], check: function (s) { return isDir(s, ["Documents", "cli_test"]); } },
+            { t: "Μπες μέσα και φτιάξε το hello.txt που γράφει hello", hint: ["cd cli_test", "echo hello > hello.txt"], check: function (s) { return fileHas(s, ["Documents", "cli_test", "hello.txt"], "hello"); } },
+            { t: "Δες τι έχει ο φάκελος και τι γράφει το αρχείο", hint: ["dir", "type hello.txt"], check: function (s) { return fileHas(s, ["Documents", "cli_test", "hello.txt"], "hello") && H(s, /^dir\b/i) && H(s, /^type\s+.*hello\.txt/i); } }
+          ] },
+        { id: "e1e", type: "term", os: "linux", tag: "Εργαστήριο 3", title: "Πρώτη γνωριμία με το Linux",
+          desc: "Όπως στο jslinux: δοκίμασε τις βασικές εντολές του Linux και γράψε τι βρήκες. Σε κάθε εντολή σκέψου ποια είναι η αντίστοιχη των Windows.",
+          steps: [
+            { t: "Δες το όνομα και την έκδοση του πυρήνα", hint: ["uname -a"], check: function (s) { return H(s, /^uname\s+-\w*a/); } },
+            { t: "Δες ποια διανομή Linux είναι", hint: ["cat /etc/os-release"], check: function (s) { return s.ran.osrelease; } },
+            { t: "Βρες με ποιον χρήστη είσαι συνδεδεμένος/η", hint: ["whoami"], check: function (s) { return s.ran.whoami; } },
+            { t: "Βρες σε ποιον φάκελο βρίσκεσαι", hint: ["pwd"], check: function (s) { return s.ran.pwd; } }
+          ],
+          asks: [
+            { q: "Διανομή (NAME)", a: [/ubuntu/] },
+            { q: "Έκδοση πυρήνα (ο αριθμός μετά το saek-pc)", a: [/^6\.8\.0/] },
+            { q: "Χρήστης", a: ["mathitis"] },
+            { q: "Ο φάκελός σου (η απάντηση του pwd)", a: [/^\/home\/mathitis\/?$/] },
+            { q: "Η αντίστοιχη εντολή του uname -a στα Windows", a: ["ver", "winver", "systeminfo"] }
+          ] },
+        { id: "e1f", type: "quiz", tag: "Άσκηση", title: "Εμπορικό ή ΕΛ/ΛΑΚ;",
+          desc: "Για κάθε λογισμικό διάλεξε αν είναι εμπορικό (με άδεια χρήσης) ή Ελεύθερο Λογισμικό / Λογισμικό Ανοιχτού Κώδικα.",
+          hint: "ΕΛ/ΛΑΚ: τον κώδικα τον βλέπεις, τον αλλάζεις και τον μοιράζεσαι, και συνήθως είναι δωρεάν. Εμπορικό: κλειστός κώδικας και συνήθως πληρώνεις άδεια.",
+          opts: ["Εμπορικό", "ΕΛ/ΛΑΚ"],
+          items: [
+            { q: "Windows 11", a: "Εμπορικό" }, { q: "Ubuntu", a: "ΕΛ/ΛΑΚ" }, { q: "macOS", a: "Εμπορικό" }, { q: "Firefox", a: "ΕΛ/ΛΑΚ" },
+            { q: "Microsoft Office", a: "Εμπορικό" }, { q: "7-Zip", a: "ΕΛ/ΛΑΚ" }, { q: "LibreOffice", a: "ΕΛ/ΛΑΚ" }, { q: "Adobe Photoshop", a: "Εμπορικό" }
+          ] },
+        { id: "e1g", type: "quiz", tag: "Ο στόχος", title: "Ποιο ΛΣ θα πρότεινες;",
+          desc: "Για κάθε περίπτωση διάλεξε το ΛΣ που ταιριάζει καλύτερα. Στην τάξη μετράει η αιτιολόγηση· εδώ ελέγχεται η πιο συνηθισμένη επιλογή.",
+          hint: "Σκέψου τρία πράγματα: πόσο κοστίζει, ποιο λογισμικό χρειάζεται η δουλειά, πόσο σταθερό και ασφαλές πρέπει να είναι.",
+          opts: ["Windows", "macOS", "Linux"],
+          items: [
+            { q: "Εργαστήριο με παλιούς υπολογιστές και μηδέν budget", a: "Linux", why: "Δωρεάν και ελαφρύ (π.χ. Linux Mint, Lubuntu): τρέχει και σε παλιό υλικό." },
+            { q: "Γραφίστας που δουλεύει με Final Cut", a: "macOS", why: "Το Final Cut υπάρχει μόνο σε macOS." },
+            { q: "Web server για το site μιας εταιρείας", a: "Linux", why: "Σταθερό, δωρεάν, και το πιο διαδεδομένο σε web servers." },
+            { q: "Λογιστήριο με ελληνικό λογιστικό πρόγραμμα", a: "Windows", why: "Τα περισσότερα ελληνικά λογιστικά προγράμματα τρέχουν μόνο σε Windows." },
+            { q: "Developer που φτιάχνει παιχνίδια με DirectX", a: "Windows", why: "Το DirectX είναι της Microsoft και υπάρχει μόνο στα Windows." }
+          ] },
+        { id: "e1h", type: "quiz", tag: "Για το σπίτι", title: "Πέντε γενιές σε 80 χρόνια",
+          desc: "Αντιστοίχισε κάθε περιγραφή με τη γενιά υπολογιστών και ΛΣ που ανήκει.",
+          hint: "Λυχνίες (1945) → τρανζίστορ (1955) → ολοκληρωμένα κυκλώματα (1965) → προσωπικοί υπολογιστές (1980) → κινητά & cloud (2007).",
+          opts: ["1η", "2η", "3η", "4η", "5η"],
+          items: [
+            { q: "Λυχνίες κενού, χωρίς ΛΣ: προγραμματισμός με διακόπτες και καλώδια", a: "1η" },
+            { q: "Τρανζίστορ και ομαδική επεξεργασία (batch) με διάτρητες κάρτες", a: "2η" },
+            { q: "Ολοκληρωμένα κυκλώματα, πολυπρογραμματισμός και το UNIX (1969)", a: "3η" },
+            { q: "Προσωπικοί υπολογιστές: MS-DOS, Windows, Linux (1991) και το γραφικό περιβάλλον", a: "4η" },
+            { q: "Κινητά και cloud: iOS, Android, εικονικές μηχανές", a: "5η" }
+          ] }
+      ]
+    },
+    {
+      id: "e2", num: 2, title: "Κατηγορίες ΛΣ και διεργασίες", short: "Διεργασίες", date: "2026-10-13",
+      ex: [
+        { id: "e2a", type: "quiz", tag: "Ζέσταμα", title: "Σε ποια κατηγορία ανήκει;",
+          desc: "Για κάθε σύστημα διάλεξε την κύρια κατηγορία ΛΣ που του ταιριάζει.",
+          hint: "Ψάξε τη λέξη-κλειδί: «αυστηρό χρονικό όριο» → πραγματικού χρόνου, «πολλοί υπολογιστές» → κατανεμημένο, «μέσα σε συσκευή» → ενσωματωμένο, «εργασίες στη σειρά χωρίς χρήστη» → ομαδική επεξεργασία, «κβάντο και εναλλαγή» → καταμερισμός χρόνου.",
+          opts: ["Ομαδικής επεξεργασίας", "Καταμερισμού χρόνου", "Πραγματικού χρόνου", "Κατανεμημένο", "Ενσωματωμένο"],
+          items: [
+            { q: "Ο ελεγκτής του αερόσακου ενός αυτοκινήτου", a: "Πραγματικού χρόνου", why: "Αργή απάντηση = λάθος απάντηση." },
+            { q: "Το Netflix που σερβίρει ταινίες από χιλιάδες servers", a: "Κατανεμημένο" },
+            { q: "Ο υπολογιστής του εργαστηρίου με Windows 11", a: "Καταμερισμού χρόνου" },
+            { q: "Η νυχτερινή μισθοδοσία μιας τράπεζας", a: "Ομαδικής επεξεργασίας", why: "Οι εργασίες τρέχουν η μία μετά την άλλη, χωρίς να επεμβαίνει χρήστης." },
+            { q: "Μια έξυπνη τηλεόραση (smart TV)", a: "Ενσωματωμένο" },
+            { q: "Το ABS που δεν αφήνει τους τροχούς να μπλοκάρουν στο φρενάρισμα", a: "Πραγματικού χρόνου" }
+          ] },
+        { id: "e2b", type: "quiz", tag: "Άσκηση", title: "Πρόγραμμα ή διεργασία;",
+          desc: "Πρόγραμμα = αρχείο στον δίσκο. Διεργασία = πρόγραμμα σε εκτέλεση, στη μνήμη. Διάλεξε για καθένα.",
+          hint: "Θυμήσου τη συνταγή: η συνταγή στο βιβλίο είναι το πρόγραμμα, κάθε μαγείρεμα είναι μια διεργασία.",
+          opts: ["Πρόγραμμα", "Διεργασία"],
+          items: [
+            { q: "Το αρχείο notepad.exe στον φάκελο C:\\Windows\\System32", a: "Πρόγραμμα" },
+            { q: "Ένα ανοιχτό Σημειωματάριο με PID 4120", a: "Διεργασία" },
+            { q: "Το setup.exe στα Downloads, που δεν το έχεις τρέξει ακόμα", a: "Πρόγραμμα" },
+            { q: "Μια γραμμή στη Διαχείριση εργασιών με κατάσταση «Εκτελείται»", a: "Διεργασία" },
+            { q: "Η συνταγή στο βιβλίο μαγειρικής", a: "Πρόγραμμα" },
+            { q: "Ο μάγειρας που μαγειρεύει τη συνταγή αυτή τη στιγμή", a: "Διεργασία" },
+            { q: "Ανοίγεις 3 φορές το Σημειωματάριο. Τι έχεις;", opts: ["1 πρόγραμμα, 1 διεργασία", "1 πρόγραμμα, 3 διεργασίες", "3 προγράμματα, 3 διεργασίες"], a: "1 πρόγραμμα, 3 διεργασίες" }
+          ] },
+        { id: "e2c", type: "term", os: "windows", tag: "Εργαστήριο 1", title: "1 πρόγραμμα, 3 διεργασίες",
+          desc: "Άνοιξε το Σημειωματάριο τρεις φορές και δες ότι κάθε φορά γεννιέται νέα διεργασία με δικό της PID. Μετά κλείσε μία από τις τρεις με το PID της.",
+          steps: [
+            { t: "Άνοιξε 3 φορές το Σημειωματάριο", hint: ["start notepad"], check: function (s) {
+                var n = count(s, "notepad.exe");
+                s.npMax = Math.max(s.npMax || 0, n);
+                s.npPids = (s.npPids || []).concat(pids(s, "notepad.exe").filter(function (p) { return (s.npPids || []).indexOf(p) < 0; }));
+                return s.npMax >= 3;
+              } },
+            { t: "Δες μόνο τις διεργασίες notepad.exe", hint: ['tasklist /fi "imagename eq notepad.exe"'], check: function (s) { return H(s, /^tasklist\b.*notepad/i); } },
+            { t: "Κλείσε ένα Σημειωματάριο με το PID του", hint: ["taskkill /pid <PID>"], check: function (s) { return s.npMax >= 3 && count(s, "notepad.exe") < s.npMax && H(s, /^taskkill\b.*\/pid/i); } }
+          ],
+          asks: [
+            { q: "Το PID ενός από τα Σημειωματάρια", a: function (s) { return (s.npPids || []).map(String); } },
+            { q: "Τα PID τους είναι ίδια ή διαφορετικά;", a: [/^διαφορετικ/] },
+            { q: "Πόσα προγράμματα έτρεξες; (αριθμός)", a: ["1", "ενα"] }
+          ] },
+        { id: "e2d", type: "term", os: "windows", tag: "Εργαστήριο 2", title: "Πόσα chrome;",
+          desc: "Ο browser είναι ένα πρόγραμμα, αλλά ανοίγει πολλές διεργασίες (για καρτέλες, πρόσθετα, γραφικά). Μέτρησέ τες και βρες ποια «τρώει» την περισσότερη μνήμη.",
+          steps: [
+            { t: "Δες όλες τις διεργασίες", hint: ["tasklist"], check: function (s) { return s.ran.tasklist; } },
+            { t: "Μέτρησε τις διεργασίες chrome.exe", hint: ['tasklist | find /c "chrome"'], check: function (s) { return s.flags.countChrome; } },
+            { t: "Δες μόνο τις chrome.exe, μαζί με τη μνήμη τους", hint: ['tasklist /fi "imagename eq chrome.exe"'], check: function (s) { return H(s, /^tasklist\b.*\/fi.*chrome/i); } }
+          ],
+          asks: [
+            { q: "Πόσες διεργασίες chrome.exe τρέχουν;", a: function (s) { return [String(count(s, "chrome.exe"))]; } },
+            { q: "Το PID της chrome.exe με την περισσότερη μνήμη (Mem Usage)", a: function (s) {
+                var top = s.procs.list.filter(function (p) { return p.name === "chrome.exe"; }).sort(function (a, b) { return b.mem - a.mem; })[0];
+                return top ? [String(top.pid)] : [];
+              } }
+          ] },
+        { id: "e2e", type: "term", os: "windows", tag: "Εργαστήριο 3", title: "Ποιος κόλλησε;",
+          desc: "Ένα παιχνίδι έχει κολλήσει (Not Responding). Βρες το από τη Γραμμή εντολών και τερμάτισέ το. Προσοχή: μια διεργασία που δεν «ακούει» κλείνει μόνο αναγκαστικά.",
+          steps: [
+            { t: "Βρες ποια διεργασία δεν αποκρίνεται", hint: ['tasklist /fi "status eq not responding"', "tasklist /v"], check: function (s) { return s.flags.foundStuck; } },
+            { t: "Τερμάτισέ την αναγκαστικά", hint: ["taskkill /im paixnidi.exe /f"], check: function (s) { return !procNamed(s, "paixnidi.exe"); } }
+          ],
+          asks: [
+            { q: "Το όνομα της διεργασίας που κόλλησε", a: ["paixnidi.exe", "paixnidi"] },
+            { q: "Ποια παράμετρος του taskkill κλείνει αναγκαστικά;", a: ["/f", "f"] }
+          ] },
+        { id: "e2f", type: "quiz", tag: "Άσκηση", title: "Ακολούθησε τη διεργασία",
+          desc: "Ο υπολογιστής έχει 1 πυρήνα. Ανοίγεις το Word, γράφεις, πατάς «Αποθήκευση» και μετά το κλείνεις. Σε ποια κατάσταση είναι η διεργασία του Word μετά από κάθε γεγονός;",
+          hint: "Νέα → Έτοιμη (μπαίνει στην ουρά) → Εκτελούμενη (τη διάλεξε ο scheduler). Λήξη κβάντου: πίσω στις Έτοιμες. Αναμονή για δίσκο: Μπλοκαρισμένη. Τέλος Ε/Ε: πάλι Έτοιμη.",
+          opts: ["Νέα", "Έτοιμη", "Εκτελούμενη", "Μπλοκαρισμένη", "Τερματισμένη"],
+          items: [
+            { q: "Διπλό κλικ στο Word: η διεργασία δημιουργείται και μπαίνει στην ουρά", a: "Έτοιμη" },
+            { q: "Ο scheduler τη διαλέγει", a: "Εκτελούμενη" },
+            { q: "Λήγει το κβάντο της και σειρά παίρνει το Spotify", a: "Έτοιμη" },
+            { q: "Ο scheduler τη διαλέγει ξανά", a: "Εκτελούμενη" },
+            { q: "Πατάς «Αποθήκευση» και περιμένει τον δίσκο", a: "Μπλοκαρισμένη" },
+            { q: "Ο δίσκος τελείωσε την εγγραφή", a: "Έτοιμη", why: "Δεν παίρνει αμέσως τον επεξεργαστή: πηγαίνει πρώτα στην ουρά των Έτοιμων." },
+            { q: "Κλείνεις το Word", a: "Τερματισμένη" }
+          ] },
+        { id: "e2g", type: "term", os: "linux", tag: "Ο στόχος", title: "Κυνήγι διεργασιών στο Linux",
+          desc: "Ό,τι έκανες στα Windows, τώρα στο τερματικό του Linux: δες όλες τις διεργασίες, μέτρησε τις firefox, βρες ποια «τρώει» τον επεξεργαστή και σταμάτησέ τη. Κάνε τα βήματα με τη σειρά!",
+          steps: [
+            { t: "Δες όλες τις διεργασίες του συστήματος", hint: ["ps aux"], check: function (s) { return s.ran.psall; } },
+            { t: "Μέτρησε τις διεργασίες firefox", hint: ["ps aux | grep -c firefox", "pgrep -c firefox"], check: function (s) { return s.flags.countFirefox; } },
+            { t: "Βρες ποια διεργασία έχει τη μεγαλύτερη χρήση CPU", hint: ["top"], check: function (s) { return s.ran.top; } },
+            { t: "Ζήτα της πρώτα «ευγενικά» να κλείσει (απλό kill)", hint: ["killall paixnidi", "kill <PID>"], check: function (s) { return s.flags.triedTerm; } },
+            { t: "Τερμάτισέ την αναγκαστικά", hint: ["killall -9 paixnidi", "kill -9 <PID>"], check: function (s) { return !procNamed(s, "paixnidi"); } }
+          ],
+          asks: [
+            { q: "Πόσες διεργασίες firefox τρέχουν;", a: function (s) { return [String(count(s, "firefox"))]; } },
+            { q: "Ποια διεργασία «τρώει» τον επεξεργαστή;", a: ["paixnidi", "./paixnidi"] },
+            { q: "Ποιο σήμα στέλνει το kill -9;", a: [/^(sig)?kill$/, "9"] }
+          ] },
+        { id: "e2h", type: "quiz", tag: "Πρόκληση", title: "Ποιες μεταβάσεις γίνονται;",
+          desc: "Με βάση το διάγραμμα καταστάσεων, διάλεξε αν κάθε μετάβαση μπορεί να γίνει ή είναι αδύνατη.",
+          hint: "Τον επεξεργαστή τον δίνει μόνο ο scheduler, και μόνο σε διεργασίες που είναι Έτοιμες. Για να μπλοκαριστεί μια διεργασία πρέπει να ζητήσει κάτι, άρα να εκτελείται.",
+          opts: ["Γίνεται", "Αδύνατη"],
+          items: [
+            { q: "Έτοιμη → Εκτελούμενη", a: "Γίνεται" },
+            { q: "Μπλοκαρισμένη → Εκτελούμενη", a: "Αδύνατη", why: "Όταν έρθει η Ε/Ε πηγαίνει πρώτα στις Έτοιμες. Τον επεξεργαστή τον δίνει μόνο ο scheduler." },
+            { q: "Εκτελούμενη → Μπλοκαρισμένη", a: "Γίνεται" },
+            { q: "Έτοιμη → Μπλοκαρισμένη", a: "Αδύνατη", why: "Για να μπλοκαριστεί πρέπει να ζητήσει κάτι (π.χ. δίσκο), άρα να εκτελείται." },
+            { q: "Εκτελούμενη → Έτοιμη", a: "Γίνεται", why: "Συμβαίνει όταν λήξει το κβάντο της." },
+            { q: "Νέα → Εκτελούμενη", a: "Αδύνατη", why: "Κάθε νέα διεργασία μπαίνει πρώτα στην ουρά των Έτοιμων." },
+            { q: "Σε επεξεργαστή με 4 πυρήνες, πόσες διεργασίες μπορούν να είναι Εκτελούμενες την ίδια στιγμή;", opts: ["1", "4", "όσες θέλουν"], a: "4", why: "Μία σε κάθε πυρήνα." }
+          ] }
+      ]
+    },
+    {
+      id: "e3", num: 3, title: "Χρονοδρομολόγηση Ι: FCFS και SJF", short: "FCFS · SJF", date: "2026-10-20",
+      ex: [
+        { id: "e3a", type: "quiz", tag: "Ζέσταμα", title: "Οι λέξεις που θα χρειαστούμε",
+          desc: "Αντιστοίχισε κάθε ορισμό με τον όρο του.",
+          hint: "Άφιξη = πότε ήρθε. Εκτέλεση = πόσο χρειάζεται. Αναμονή = πόσο περίμενε χωρίς να τρέχει.",
+          opts: ["Χρονοδρομολογητής", "Χρόνος άφιξης", "Χρόνος εκτέλεσης", "Χρόνος αναμονής", "Διάγραμμα Gantt"],
+          items: [
+            { q: "Το κομμάτι του ΛΣ που αποφασίζει ποια διεργασία παίρνει τον επεξεργαστή", a: "Χρονοδρομολογητής" },
+            { q: "Πότε έφτασε η διεργασία στην ουρά", a: "Χρόνος άφιξης" },
+            { q: "Πόση ώρα χρειάζεται τον επεξεργαστή για να τελειώσει", a: "Χρόνος εκτέλεσης" },
+            { q: "Πόση ώρα περίμενε στην ουρά χωρίς να τρέχει", a: "Χρόνος αναμονής" },
+            { q: "Μια λωρίδα χρόνου που δείχνει ποια διεργασία έτρεξε πότε", a: "Διάγραμμα Gantt" },
+            { q: "«Μη προεκχωρητικός» αλγόριθμος σημαίνει ότι…", opts: ["όποια διεργασία ξεκινήσει, τελειώνει", "το ΛΣ μπορεί να τη διακόψει στη μέση"], a: "όποια διεργασία ξεκινήσει, τελειώνει" }
+          ] },
+        { id: "e3b", type: "gantt", alg: "fcfs", tag: "Άσκηση Α1", title: "FCFS με 3 διεργασίες",
+          desc: "Όλες φτάνουν στο 0 και τρέχουν με τη σειρά P1 → P2 → P3. Χρωμάτισε το Gantt, συμπλήρωσε πότε αρχίζει και πότε τελειώνει κάθε διεργασία, την αναμονή της και τον μέσο χρόνο αναμονής.",
+          hint: "Η P1 πιάνει τα πρώτα 5 κουτάκια και μετά έρχεται η P2. Αναμονή = αρχίζει − άφιξη. Μέσος όρος = άθροισμα αναμονών / 3.",
+          procs: [["P1", 0, 5], ["P2", 0, 3], ["P3", 0, 2]] },
+        { id: "e3c", type: "gantt", alg: "sjf", tag: "Άσκηση Α2", title: "Τα ίδια δεδομένα με SJF",
+          desc: "Τα ίδια δεδομένα, αλλά τώρα τρέχει πρώτη η πιο σύντομη. Βάλε τις διεργασίες σε σειρά από τη μικρότερη εκτέλεση στη μεγαλύτερη.",
+          hint: "Ταξινόμησε κατά χρόνο εκτέλεσης, η μικρότερη πρώτη. Μετά σύγκρινε τον μέσο όρο με αυτόν της Α1.",
+          procs: [["P1", 0, 5], ["P2", 0, 3], ["P3", 0, 2]] },
+        { id: "e3d", type: "gantt", alg: "fcfs", tag: "Άσκηση", title: "Το φαινόμενο συνοδείας",
+          desc: "Μια μεγάλη διεργασία μπαίνει πρώτη στην ουρά. Κάνε το FCFS και δες πόσο περιμένουν οι μικρές πίσω της, σαν αυτοκίνητα πίσω από φορτηγό σε στενό δρόμο. Συμβουλή: σύρε το ποντίκι για να χρωματίσεις πολλά κουτάκια μαζί.",
+          hint: "Η P1 πιάνει 24 κουτάκια. Με SJF ο μέσος όρος εδώ θα ήταν μόλις 3. Πόσος βγαίνει με FCFS;",
+          procs: [["P1", 0, 24], ["P2", 0, 3], ["P3", 0, 3]] },
+        { id: "e3e", type: "gantt", alg: "fcfs", tag: "Εργαστήριο Β1", title: "FCFS με διαφορετικές αφίξεις",
+          desc: "Τώρα οι διεργασίες δεν φτάνουν όλες μαζί. Με FCFS τρέχουν με τη σειρά άφιξης. Προσοχή: αναμονή = πότε άρχισε μείον πότε ήρθε.",
+          hint: "Η P2 ήρθε στο 1, αλλά ξεκινά όταν τελειώσει η P1. Η αναμονή της είναι «αρχίζει − 1».",
+          procs: [["P1", 0, 4], ["P2", 1, 3], ["P3", 2, 1], ["P4", 3, 2]] },
+        { id: "e3f", type: "gantt", alg: "sjf", tag: "Ο στόχος", title: "SJF με διαφορετικές αφίξεις",
+          desc: "Τα ίδια δεδομένα με SJF. Κάθε φορά που ελευθερώνεται ο επεξεργαστής, διαλέγεις τη μικρότερη από όσες έχουν ήδη φτάσει.",
+          hint: "Στο 0 έχει φτάσει μόνο η P1, άρα ξεκινά αυτή και δεν διακόπτεται. Στο 4 περιμένουν οι P2 (3), P3 (1) και P4 (2): ποια είναι η μικρότερη;",
+          procs: [["P1", 0, 4], ["P2", 1, 3], ["P3", 2, 1], ["P4", 3, 2]] },
+        { id: "e3g", type: "quiz", tag: "Άσκηση", title: "Έλεγξε τον εαυτό σου",
+          desc: "Γρήγορες ερωτήσεις για ό,τι έκανες σήμερα.",
+          hint: "Ξαναδές τις ασκήσεις Α1, Α2 και Γ1: τι άλλαξε στους μέσους όρους και ποιος περίμενε περισσότερο;",
+          opts: ["FCFS", "SJF"],
+          items: [
+            { q: "Ποιος αλγόριθμος δίνει μικρότερο μέσο χρόνο αναμονής;", a: "SJF" },
+            { q: "Σε ποιον αλγόριθμο εμφανίζεται το φαινόμενο συνοδείας;", a: "FCFS" },
+            { q: "Σε ποιον αλγόριθμο μια μεγάλη διεργασία κινδυνεύει να περιμένει για πάντα (λιμοκτονία);", a: "SJF" },
+            { q: "Στην άσκηση «SJF με διαφορετικές αφίξεις», ποια διεργασία περίμενε περισσότερο;", opts: ["P1", "P2", "P3", "P4"], a: "P2" },
+            { q: "Τι δείχνει ένα διάγραμμα Gantt;", opts: ["ποια διεργασία έτρεξε πότε", "πόση μνήμη έχει κάθε διεργασία", "πόσα προγράμματα υπάρχουν στον δίσκο"], a: "ποια διεργασία έτρεξε πότε" },
+            { q: "Πώς βρίσκω την αναμονή όταν δεν υπάρχει διακοπή;", opts: ["αρχίζει − άφιξη", "τελειώνει − αρχίζει", "εκτέλεση − άφιξη"], a: "αρχίζει − άφιξη" }
+          ] },
+        { id: "e3h", type: "gantt", alg: "sjf", tag: "Πρόκληση", title: "Ο επεξεργαστής κάθεται",
+          desc: "SJF, αλλά υπάρχει στιγμή που δεν έχει φτάσει καμία διεργασία. Τότε ο επεξεργαστής μένει άδειος: άφησε εκείνα τα κουτάκια λευκά.",
+          hint: "Στο 3 τελειώνει η P1 και η επόμενη φτάνει στο 5. Στο 5 έχει φτάσει μόνο η P2: ξεκινά, ακόμα κι αν είναι μεγάλη, και δεν διακόπτεται.",
+          procs: [["P1", 0, 3], ["P2", 5, 4], ["P3", 6, 1], ["P4", 6, 2]] },
+        { id: "e3i", type: "gantt", alg: "sjf", tag: "Για το σπίτι", title: "SJF με 4 διεργασίες",
+          desc: "Δεδομένα που θα ξαναδούμε στο Εργαστήριο 4. Λύσε τα με SJF (χωρίς διακοπή).",
+          hint: "Η P1 ξεκινά στο 0 και, αφού το SJF δεν διακόπτει, κρατά ως το 7. Στο 7 περιμένουν οι P2 (4), P3 (1) και P4 (4). Σε ισοπαλία κερδίζει όποια ήρθε πρώτη.",
+          procs: [["P1", 0, 7], ["P2", 2, 4], ["P3", 4, 1], ["P4", 5, 4]] }
+      ]
+    },
+    {
+      id: "e4", num: 4, title: "Χρονοδρομολόγηση ΙΙ: Round Robin, SRTF, Priority", short: "RR · SRTF · Priority", date: "2026-10-27",
+      ex: [
+        { id: "e4a", type: "quiz", tag: "Ζέσταμα", title: "Με ή χωρίς διακοπή;",
+          desc: "Για κάθε αλγόριθμο διάλεξε αν μπορεί να διακόψει μια διεργασία στη μέση (προεκχωρητικός) ή όχι.",
+          hint: "Χωρίς διακοπή: όποια ξεκινήσει, τελειώνει. Με διακοπή: ο Round Robin σταματά στη λήξη του κβάντου, το SRTF όταν έρθει πιο σύντομη, το Priority όταν έρθει πιο σημαντική.",
+          opts: ["Χωρίς διακοπή", "Με διακοπή"],
+          items: [
+            { q: "FCFS", a: "Χωρίς διακοπή" }, { q: "SJF", a: "Χωρίς διακοπή" }, { q: "Round Robin", a: "Με διακοπή" },
+            { q: "SRTF", a: "Με διακοπή" }, { q: "Priority (απλή μορφή)", a: "Χωρίς διακοπή" }, { q: "Priority με διακοπή", a: "Με διακοπή" },
+            { q: "Ο αλγόριθμος που μπορεί να σταματήσει μια διεργασία στη μέση λέγεται…", opts: ["προεκχωρητικός", "μη προεκχωρητικός"], a: "προεκχωρητικός" }
+          ] },
+        { id: "e4b", type: "gantt", alg: "rr", q: 2, tag: "Παιχνίδι", title: "Η καυτή πατάτα",
+          desc: "Το παιχνίδι της τάξης: το μπαλάκι είναι ο επεξεργαστής, οι κάρτες έχουν 5, 3 και 1 δευτερόλεπτα και κάθε παίκτης κρατά το μπαλάκι 2 δευτερόλεπτα (κβάντο). Ζωγράφισε τι έγινε.",
+          hint: "Σειρά P1 → P2 → P3 και ξανά από την αρχή, μόνο όσες δεν τελείωσαν. Με διακοπή η αναμονή είναι τέλος − άφιξη − εκτέλεση.",
+          procs: [["P1", 0, 5], ["P2", 0, 3], ["P3", 0, 1]] },
+        { id: "e4c", type: "gantt", alg: "rr", q: 2, tag: "Άσκηση Α1", title: "Round Robin με κβάντο 2",
+          desc: "Όλες φτάνουν στο 0, με σειρά P1, P2, P3. Κβάντο = 2: κάθε διεργασία τρέχει το πολύ 2 κουτάκια και, αν δεν τελειώσει, πηγαίνει στο τέλος της ουράς.",
+          hint: "P1 στο 0–2, P2 στο 2–4 (και τελειώνει), P3 στο 4–6… και συνεχίζεις κυκλικά με όσες έμειναν.",
+          procs: [["P1", 0, 4], ["P2", 0, 2], ["P3", 0, 3]] },
+        { id: "e4d", type: "gantt", alg: "srtf", tag: "Άσκηση", title: "SRTF: το πρώτο παράδειγμα",
+          desc: "Η P1 ξεκινά μόνη της. Στο 2 φτάνει η P2, που χρειάζεται μόνο 2. Στην P1 λείπουν ακόμα 4. Ποια συνεχίζει;",
+          hint: "Το SRTF τρέχει όποια έχει τον μικρότερο υπόλοιπο χρόνο: 2 < 4, άρα η P1 σταματά και συνεχίζει μετά.",
+          procs: [["P1", 0, 6], ["P2", 2, 2]] },
+        { id: "e4e", type: "gantt", alg: "srtf", tag: "Εργαστήριο Β1", title: "SRTF με 4 διεργασίες",
+          desc: "Κάθε φορά που φτάνει νέα διεργασία, σύγκρινε τον υπόλοιπο χρόνο όλων. Τρέχει η μικρότερη. Αναμονή = τέλος − άφιξη − εκτέλεση.",
+          hint: "Κράτα σε χαρτί τον υπόλοιπο χρόνο κάθε διεργασίας και ενημέρωσέ τον σε κάθε άφιξη (στο 2, στο 4, στο 5). Σε ισοπαλία συνεχίζει αυτή που ήδη τρέχει.",
+          procs: [["P1", 0, 7], ["P2", 2, 4], ["P3", 4, 1], ["P4", 5, 4]] },
+        { id: "e4f", type: "gantt", alg: "prio", tag: "Εργαστήριο Β2", title: "Priority χωρίς διακοπή",
+          desc: "Όλες φτάνουν στο 0. Τρέχουν με σειρά προτεραιότητας (1 = πιο σημαντική). Καμία δεν διακόπτεται.",
+          hint: "Ταξινόμησε κατά προτεραιότητα: πρώτα η 1, μετά η 2, κ.ο.κ. Αναμονή = αρχίζει − άφιξη.",
+          procs: [["P1", 0, 4, 3], ["P2", 0, 3, 1], ["P3", 0, 2, 4], ["P4", 0, 1, 2]] },
+        { id: "e4g", type: "gantt", alg: "prio-p", tag: "Ο στόχος", title: "Priority με διακοπή",
+          desc: "Αν φτάσει πιο σημαντική διεργασία, η τρέχουσα σταματά και περιμένει να ξανάρθει η σειρά της. Αναμονή = τέλος − άφιξη − εκτέλεση.",
+          hint: "Στο 1 φτάνει η P2 με προτεραιότητα 1, πιο σημαντική από την P1 (3): η P1 σταματά. Στο 2 φτάνει η P3 (2): είναι πιο σημαντική από την P2;",
+          procs: [["P1", 0, 5, 3], ["P2", 1, 2, 1], ["P3", 2, 3, 2]] },
+        { id: "e4h", type: "quiz", tag: "Άσκηση", title: "Ποιος κερδίζει;",
+          desc: "Τα δεδομένα της Β1 (P1: άφιξη 0, εκτέλεση 7 · P2: 2, 4 · P3: 4, 1 · P4: 5, 4) με τέσσερις αλγορίθμους. Λύσε τους στο χαρτί ή στο Excel και γράψε τον μέσο χρόνο αναμονής του καθενός.",
+          hint: "Το SRTF το έλυσες στη Β1 και το SJF στην άσκηση «Για το σπίτι» του Εργαστηρίου 3. Στο Round Robin όποια φτάνει μπαίνει στο τέλος της ουράς, πριν από αυτήν που μόλις διακόπηκε.",
+          items: [
+            { q: "FCFS", num: 4.75 }, { q: "SJF", num: 4 }, { q: "SRTF", num: 3 }, { q: "Round Robin (κβάντο 2)", num: 5 },
+            { q: "Ποιος έχει τον μικρότερο μέσο χρόνο αναμονής;", opts: ["FCFS", "SJF", "SRTF", "Round Robin"], a: "SRTF" }
+          ] },
+        { id: "e4i", type: "quiz", tag: "Κουίζ", title: "Κουίζ επανάληψης",
+          desc: "Οι ερωτήσεις του τέλους του εργαστηρίου, για επανάληψη πριν το τεστ.",
+          hint: "Αν κολλήσεις, ξαναδές τη σύνοψη στο τέλος των σημειώσεων των Εργαστηρίων 3 και 4.",
+          opts: ["FCFS", "SJF", "Round Robin", "SRTF"],
+          items: [
+            { q: "Ποιος αλγόριθμος εξυπηρετεί με σειρά άφιξης;", a: "FCFS" },
+            { q: "Ποιος δίνει τον μικρότερο μέσο χρόνο αναμονής χωρίς διακοπή;", a: "SJF" },
+            { q: "Τι είναι το κβάντο χρόνου;", opts: ["ο χρόνος που παίρνει κάθε φορά μια διεργασία στον Round Robin", "ο συνολικός χρόνος εκτέλεσης μιας διεργασίας", "ο χρόνος που περιμένει μια διεργασία στην ουρά"], a: "ο χρόνος που παίρνει κάθε φορά μια διεργασία στον Round Robin" },
+            { q: "Ποιοι αλγόριθμοι διακόπτουν;", opts: ["FCFS και SJF", "Round Robin, SRTF και Priority με διακοπή", "μόνο ο Round Robin"], a: "Round Robin, SRTF και Priority με διακοπή" },
+            { q: "Τι είναι η λιμοκτονία;", opts: ["μια διεργασία δεν παίρνει ποτέ τον επεξεργαστή", "ο επεξεργαστής μένει άδειος", "μια διεργασία γεμίζει όλη τη μνήμη"], a: "μια διεργασία δεν παίρνει ποτέ τον επεξεργαστή" },
+            { q: "Ποια λύση υπάρχει για τη λιμοκτονία;", opts: ["η γήρανση (aging)", "μεγαλύτερο κβάντο", "περισσότερη RAM"], a: "η γήρανση (aging)" },
+            { q: "Τι γίνεται με πολύ μεγάλο κβάντο στον Round Robin;", opts: ["γίνεται σαν FCFS", "γίνεται σαν SJF", "χάνεται χρόνος σε εναλλαγές"], a: "γίνεται σαν FCFS" }
+          ] },
+        { id: "e4j", type: "gantt", alg: "rr", q: 4, tag: "Για το σπίτι", title: "Πολύ μεγάλο κβάντο",
+          desc: "Τα δεδομένα της Α1, αλλά με κβάντο 4. Λύσε το και σύγκρινε με το FCFS: τι παρατηρείς;",
+          hint: "Με κβάντο 4 καμία διεργασία δεν χρειάζεται δεύτερη σειρά. Πολύ μεγάλο κβάντο = FCFS.",
+          procs: [["P1", 0, 4], ["P2", 0, 2], ["P3", 0, 3]] }
+      ]
+    }
+  ];
+
+  var ALG = { fcfs: "FCFS", sjf: "SJF", srtf: "SRTF", rr: "Round Robin", prio: "Priority", "prio-p": "Priority με διακοπή" };
+  function preemptive(e) { return e.alg === "srtf" || e.alg === "rr" || e.alg === "prio-p"; }
+
+  function today() { var t = new Date(); t.setHours(0, 0, 0, 0); return t; }
+  function parseDate(d) { var p = d.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function norm(s) { return String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim(); }
+  function exKey(e) { return "sls:" + e.id; }
+  function isDone(e) { return api.isDone(exKey(e)); }
+  function work(e, v) {
+    if (v !== undefined) { store("sls:w:" + e.id, JSON.stringify(v)); return v; }
+    try { return JSON.parse(store("sls:w:" + e.id)) || {}; } catch (x) { return {}; }
+  }
+  // αριθμός με κόμμα ή τελεία (ή κλάσμα 13/3). Με 2 δεκαδικά γίνεται δεκτή η στρογγυλοποίηση.
+  function numOk(v, target) {
+    var s = String(v == null ? "" : v).trim().replace(/\s/g, "").replace(",", "."), x, frac = /^(-?\d+)\/(\d+)$/.exec(s);
+    if (frac) x = +frac[1] / +frac[2];
+    else if (/^-?\d+(\.\d+)?$/.test(s)) x = +s;
+    else return false;
+    if (frac || Math.abs(target - Math.round(target)) < 1e-9) return Math.abs(x - target) < 1e-6;
+    var d = (s.split(".")[1] || "").length;
+    return d > 0 && Math.abs(x - target) <= 0.5 * Math.pow(10, -d) + 1e-9;
+  }
+
+  var L = { lesson: null, idx: 0, el: null, oses: null, ex: null, brush: 0 }, exSims = {};
+  function curLesson() { return LESSONS.filter(function (l) { return l.id === L.lesson; })[0]; }
+  function defaultLesson() {
+    var saved = store("sls:lesson");
+    if (saved === "free" || LESSONS.some(function (l) { return l.id === saved; })) return saved;
+    var t = today(), best = LESSONS[0].id;
+    LESSONS.forEach(function (l) { if (parseDate(l.date) <= t) best = l.id; });
+    return best;
+  }
+  function firstOpen(l) { var i = l.ex.findIndex(function (x) { return !isDone(x); }); return i < 0 ? 0 : i; }
+  function typeLabel(e) { return e.type === "quiz" ? "❓ κουίζ" : e.type === "gantt" ? "📊 Gantt" : e.os === "linux" ? "🐧 bash" : "🪟 cmd"; }
+  function lessonDone(l) { return l.ex.filter(isDone).length; }
+
+  function render(el, oses, theApi) {
+    api = theApi; L.el = el; L.oses = oses;
+    if (!L.lesson) { L.lesson = defaultLesson(); var l0 = curLesson(); if (l0) L.idx = firstOpen(l0); }
+    var t = today(), freeDone = MISSIONS.windows.concat(MISSIONS.linux).filter(function (m) { return api.isDone(key(m)); }).length;
+    el.innerHTML =
+      '<div class="sl">' +
+        '<div class="py-lessons" role="tablist">' +
+          LESSONS.map(function (l) {
+            return '<button type="button" role="tab" data-lesson="' + l.id + '" aria-selected="' + (L.lesson === l.id) + '">' +
+              "<b>Εργαστήριο " + l.num + "</b><span>" + esc(l.short) + (parseDate(l.date) > t ? " · 🔜" : "") + "</span><i>" + lessonDone(l) + "/" + l.ex.length + "</i></button>";
+          }).join("") +
+          '<button type="button" role="tab" data-lesson="free" aria-selected="' + (L.lesson === "free") + '"><b>🧪 Ελεύθερο</b><span>τερματικό & αποστολές</span><i>' + freeDone + "/" + (MISSIONS.windows.length + MISSIONS.linux.length) + "</i></button>" +
+        "</div>" +
+        '<div class="sl-body"></div>' +
+      "</div>";
+    el.querySelector(".py-lessons").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-lesson]");
+      if (!b) return;
+      L.lesson = b.dataset.lesson; store("sls:lesson", L.lesson);
+      var l = curLesson(); L.idx = l ? firstOpen(l) : 0;
+      render(el, oses, api);
+    });
+    showLesson();
+  }
+
+  function showLesson() {
+    var body = L.el.querySelector(".sl-body"), l = curLesson();
+    L.ex = null;
+    if (!l) { mount(body, L.oses); return; }
+    body.innerHTML = '<div class="py-grid"><div class="py-main"><div class="py-task sticker"></div><div class="sl-work"></div></div><aside class="missions sticker py-list"></aside></div>';
+    body.querySelector(".py-list").addEventListener("click", function (e) {
+      var li = e.target.closest("li.ms");
+      if (!li) return;
+      L.idx = +li.dataset.i; renderList(); loadEx();
+      body.querySelector(".py-task").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    renderList(); loadEx();
+  }
+
+  function renderList() {
+    var l = curLesson(), box = L.el.querySelector(".py-list");
+    if (!l || !box) return;
+    var done = lessonDone(l);
+    box.innerHTML = '<div class="ms-head"><b>🎯 Εργαστήριο ' + l.num + '</b><span class="pill">' + done + "/" + l.ex.length + "</span></div>" +
+      '<div class="py-ltitle">' + esc(l.title) + "</div>" +
+      '<div class="xpbar"><i style="width:' + (done / l.ex.length * 100) + '%"></i></div>' +
+      '<ol class="ms-list">' + l.ex.map(function (e, i) {
+        var ok = isDone(e);
+        return '<li class="ms' + (ok ? " done" : "") + (i === L.idx ? " open" : "") + '" data-i="' + i + '"><button type="button" class="ms-row">' +
+          '<span class="ms-ico">' + (ok ? "✓" : i + 1) + '</span><span class="ms-t">' + esc(e.title) + '<small class="py-tag">' + esc(e.tag) + " · " + typeLabel(e) + "</small></span>" +
+          '<span class="ms-xp">' + (ok ? "" : "+" + EX_XP) + "</span></button></li>";
+      }).join("") + "</ol>";
+    var tab = L.el.querySelector('[data-lesson="' + l.id + '"] i');
+    if (tab) tab.textContent = done + "/" + l.ex.length;
+  }
+
+  function paintTask() {
+    var e = L.ex, l = curLesson(), task = L.el.querySelector(".py-task");
+    if (!e || !task) return;
+    task.innerHTML =
+      '<div class="top" style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill">Εργαστήριο ' + l.num + '</span><span class="pill new">' + esc(e.tag) + "</span>" +
+        (e.type === "gantt" ? '<span class="pill warn">' + ALG[e.alg] + (e.alg === "rr" ? " · κβάντο " + e.q : "") + "</span>" : "") +
+        '<span class="pill">+' + EX_XP + " XP</span>" + (isDone(e) ? '<span class="pill ok">✓ Λύθηκε</span>' : "") + "</div>" +
+      "<h3>" + esc(e.title) + "</h3><p>" + esc(e.desc) + "</p>";
+  }
+
+  function loadEx() {
+    var l = curLesson(), e = l.ex[L.idx] || l.ex[0], box = L.el.querySelector(".sl-work");
+    L.ex = e;
+    paintTask();
+    if (e.type === "quiz") quizView(box, e);
+    else if (e.type === "gantt") ganttView(box, e);
+    else termView(box, e);
+  }
+
+  // όταν λυθεί μια άσκηση
+  function solved(e) {
+    if (isDone(e)) return;
+    api.award(exKey(e), EX_XP, "🎯 " + e.title + " · +" + EX_XP + " XP");
+    var l = LESSONS.filter(function (x) { return x.ex.indexOf(e) >= 0; })[0];
+    if (l && l.ex.every(isDone)) setTimeout(function () { api.celebrate("🏆 Ολοκλήρωσες όλες τις ασκήσεις του Εργαστηρίου " + l.num + "!"); }, 900);
+    if (L.ex === e) { renderList(); paintTask(); }
+  }
+
+  function toolsHTML(e, check) {
+    return '<div class="sl-hint" hidden>💡 ' + esc(e.hint || "") + "</div>" +
+      '<div class="sl-tools">' + (check ? '<button type="button" class="btn py-checkbtn" data-act="check">✔ Έλεγχος</button>' : "") +
+        (e.hint ? '<button type="button" class="btn check" data-act="hint">💡 Υπόδειξη</button>' : "") +
+        '<button type="button" class="btn check" data-act="reset" title="Σβήνει τις απαντήσεις σου">↺ Από την αρχή</button></div>' +
+      '<div class="sl-out" aria-live="polite"></div>';
+  }
+  function toggleHint(card, btn) {
+    var h = card.querySelector(".sl-hint");
+    h.hidden = !h.hidden;
+    btn.textContent = h.hidden ? "💡 Υπόδειξη" : "🙈 Κρύψε την υπόδειξη";
+  }
+  function outHTML(lines) { return lines.map(function (x) { return '<div class="' + x.c + '">' + esc(x.s) + "</div>"; }).join(""); }
+
+  // ---------- κουίζ ----------
+  var GR = "αβγδεζηθικλμνξοπ";
+  function quizView(box, e) {
+    var w = work(e), sel = w.sel || [];
+    box.innerHTML = '<div class="sticker sl-card"><ol class="sl-quiz">' + e.items.map(function (it, i) {
+      var opts = it.opts || e.opts;
+      return '<li data-i="' + i + '"><div class="sl-q"><b>' + GR[i] + ".</b> " + esc(it.q) + "</div>" +
+        (it.num != null
+          ? '<div class="sl-ask"><span>Μέσος χρόνος αναμονής =</span><input class="sl-in" data-num inputmode="decimal" autocomplete="off" value="' + esc(sel[i] || "") + '" aria-label="' + esc(it.q) + '"></div>'
+          : '<div class="sl-opts">' + opts.map(function (o) { return '<button type="button" class="sl-opt" data-o="' + esc(o) + '" aria-pressed="' + (sel[i] === o) + '">' + esc(o) + "</button>"; }).join("") + "</div>") +
+        '<div class="sl-why" hidden></div></li>';
+    }).join("") + "</ol>" + toolsHTML(e, true) + "</div>";
+    var card = box.firstChild, out = card.querySelector(".sl-out");
+    function save() { w.sel = sel; work(e, w); }
+    card.addEventListener("click", function (ev) {
+      var b = ev.target.closest("[data-o]");
+      if (b) {
+        var li = b.closest("li"), i = +li.dataset.i;
+        sel[i] = b.dataset.o; save();
+        li.querySelectorAll("[data-o]").forEach(function (x) { x.setAttribute("aria-pressed", x === b); });
+        li.classList.remove("ok", "bad");
+        return;
+      }
+      var a = ev.target.closest("[data-act]");
+      if (!a) return;
+      if (a.dataset.act === "hint") toggleHint(card, a);
+      else if (a.dataset.act === "reset") { if (!sel.length || confirm("Να σβηστούν οι απαντήσεις σου;")) { w.sel = []; work(e, w); quizView(box, e); } }
+      else if (a.dataset.act === "check") {
+        var right = 0, empty = 0;
+        e.items.forEach(function (it, i) {
+          var li = card.querySelector('li[data-i="' + i + '"]'), v = sel[i];
+          var ok = it.num != null ? numOk(v, it.num) : v === it.a;
+          if (v == null || v === "") empty++;
+          if (ok) right++;
+          li.classList.toggle("ok", ok);
+          li.classList.toggle("bad", !ok && v != null && v !== "");
+          var why = li.querySelector(".sl-why");
+          why.hidden = !(ok && it.why);
+          if (ok && it.why) why.textContent = "✓ " + it.why;
+        });
+        var n = e.items.length, lines;
+        if (right === n) lines = [{ c: "good big", s: "🎉 Σωστό! Όλες οι απαντήσεις είναι σωστές (" + n + "/" + n + ")" }];
+        else {
+          lines = [{ c: "bad big", s: "🧪 Σωστές " + right + " από " + n + ". Συνέχισε, είσαι κοντά!" }];
+          if (empty) lines.push({ c: "tip", s: "Δεν απάντησες σε " + (empty === 1 ? "1 ερώτηση" : empty + " ερωτήσεις") + "." });
+          if (n - right - empty > 0) lines.push({ c: "tip", s: "Όσες έχουν κόκκινο περίγραμμα θέλουν άλλη απάντηση." + (e.hint ? " Αν κολλήσεις, πάτα 💡 Υπόδειξη." : "") });
+        }
+        out.innerHTML = outHTML(lines);
+        if (right === n) solved(e);
+      }
+    });
+    card.addEventListener("input", function (ev) {
+      var inp = ev.target.closest("[data-num]");
+      if (!inp) return;
+      var li = inp.closest("li");
+      sel[+li.dataset.i] = inp.value; save();
+      li.classList.remove("ok", "bad");
+    });
+  }
+
+  // ---------- διάγραμμα Gantt ----------
+  var gDrag = null;
+  document.addEventListener("pointerup", function () { gDrag = null; });
+  document.addEventListener("pointercancel", function () { gDrag = null; });
+
+  function ganttView(box, e) {
+    var P = e.procs, n = P.length, sol = schedule(P, e.alg, e.q), T = sol.cells.length, pre = preemptive(e), hasPrio = /^prio/.test(e.alg);
+    var w = work(e);
+    if (!w.g || w.g.length !== T) w.g = sol.cells.map(function () { return null; });
+    w.v = w.v || {};
+    if (L.brush >= n) L.brush = 0;
+    var cols = "grid-template-columns:repeat(" + T + ",minmax(30px,1fr))";
+    function pname(i) { return '<span class="sl-p" style="--pc:' + PCOL[i] + '"><i></i>' + esc(P[i][0]) + "</span>"; }
+    function inp(f, label) { return '<input class="sl-in" data-f="' + f + '" inputmode="decimal" autocomplete="off" value="' + esc(w.v[f] || "") + '" aria-label="' + esc(label) + '">'; }
+    var axis = "";
+    for (var t = 0; t < T; t++) axis += "<span>" + t + "</span>";
+    axis += '<span class="end">' + T + "</span>";
+
+    box.innerHTML = '<div class="sticker sl-card">' +
+      '<div class="sl-lbl">Δεδομένα' + (e.alg === "rr" ? ' <span class="pill warn">κβάντο = ' + e.q + "</span>" : "") + (hasPrio ? ' <span class="pill">προτεραιότητα 1 = πιο σημαντική</span>' : "") + "</div>" +
+      '<div class="sl-scroll"><table class="sl-tab"><thead><tr><th>Διεργασία</th><th>Άφιξη</th><th>Εκτέλεση</th>' + (hasPrio ? "<th>Προτερ.</th>" : "") + "</tr></thead><tbody>" +
+        P.map(function (p, i) { return "<tr><td>" + pname(i) + "</td><td>" + p[1] + "</td><td>" + p[2] + "</td>" + (hasPrio ? "<td>" + p[3] + "</td>" : "") + "</tr>"; }).join("") +
+      "</tbody></table></div>" +
+      '<div class="sl-lbl">Διάγραμμα Gantt <small>διάλεξε διεργασία και πάτα τα κουτάκια (με το ποντίκι μπορείς και να σύρεις)</small></div>' +
+      '<div class="sl-brush" role="group" aria-label="Διεργασία για χρωμάτισμα">' +
+        P.map(function (p, i) { return '<button type="button" data-b="' + i + '" style="--pc:' + PCOL[i] + '" aria-pressed="' + (L.brush === i) + '">' + esc(p[0]) + "</button>"; }).join("") +
+        '<button type="button" class="sl-eraser" data-b="-1" aria-pressed="' + (L.brush === -1) + '">⌫ Σβήστρα</button>' +
+        '<button type="button" class="sl-clear" data-act="clear">✕ Άδειασμα</button>' +
+      "</div>" +
+      '<div class="sl-gwrap"><div class="sl-gin" style="min-width:' + (T * 30) + 'px">' +
+        '<div class="sl-gantt" style="' + cols + '">' + sol.cells.map(function (c, t) { return '<div class="sl-c" data-t="' + t + '" role="button" aria-label="Κουτάκι ' + t + "→" + (t + 1) + '"></div>'; }).join("") + "</div>" +
+        '<div class="sl-axis" style="' + cols + '">' + axis + "</div>" +
+      "</div></div>" +
+      '<div class="sl-lbl">Πίνακας χρόνων</div>' +
+      '<div class="sl-scroll"><table class="sl-tab"><thead><tr><th>Διεργασία</th>' + (pre ? "" : "<th>Αρχίζει</th>") + "<th>Τελειώνει</th><th>Αναμονή<small>" + (pre ? "τέλος − άφιξη − εκτέλεση" : "αρχίζει − άφιξη") + "</small></th></tr></thead><tbody>" +
+        P.map(function (p, i) {
+          return "<tr><td>" + pname(i) + "</td>" + (pre ? "" : "<td>" + inp(i + "s", p[0] + " αρχίζει") + "</td>") + "<td>" + inp(i + "f", p[0] + " τελειώνει") + "</td><td>" + inp(i + "w", p[0] + " αναμονή") + "</td></tr>";
+        }).join("") +
+      "</tbody></table></div>" +
+      '<div class="sl-ask sl-avg"><span><b>Μέσος χρόνος αναμονής</b> =</span>' + inp("avg", "Μέσος χρόνος αναμονής") + "</div>" +
+      toolsHTML(e, true) + "</div>";
+
+    var card = box.firstChild, g = card.querySelector(".sl-gantt"), out = card.querySelector(".sl-out"), skipClick = false;
+    function save() { work(e, w); }
+    function paint(t) {
+      var c = g.children[t], v = w.g[t];
+      c.style.background = v == null ? "" : PCOL[v];
+      c.textContent = v == null ? "" : P[v][0];
+      c.classList.toggle("on", v != null);
+    }
+    function set(t, v) { if (w.g[t] === v) return; w.g[t] = v; paint(t); g.children[t].classList.remove("bad"); save(); }
+    function pick(t) { var b = L.brush; return b >= 0 && w.g[t] !== b ? b : null; }
+    for (var k = 0; k < T; k++) paint(k);
+
+    g.addEventListener("pointerdown", function (ev) {
+      var c = ev.target.closest(".sl-c");
+      skipClick = ev.pointerType === "mouse";
+      if (!c || !skipClick) return;
+      ev.preventDefault();
+      var t = +c.dataset.t;
+      gDrag = { g: g, v: pick(t) };
+      set(t, gDrag.v);
+    });
+    g.addEventListener("pointerover", function (ev) {
+      var c = ev.target.closest(".sl-c");
+      if (c && gDrag && gDrag.g === g && (ev.buttons & 1)) set(+c.dataset.t, gDrag.v);
+    });
+    g.addEventListener("click", function (ev) {
+      if (skipClick) { skipClick = false; return; }
+      var c = ev.target.closest(".sl-c");
+      if (c) { var t = +c.dataset.t; set(t, pick(t)); }
+    });
+    card.addEventListener("click", function (ev) {
+      var b = ev.target.closest("[data-b]");
+      if (b) {
+        L.brush = +b.dataset.b;
+        card.querySelectorAll("[data-b]").forEach(function (x) { x.setAttribute("aria-pressed", x === b); });
+        return;
+      }
+      var a = ev.target.closest("[data-act]");
+      if (!a) return;
+      if (a.dataset.act === "hint") toggleHint(card, a);
+      else if (a.dataset.act === "clear") { for (var t = 0; t < T; t++) set(t, null); }
+      else if (a.dataset.act === "reset") {
+        if (confirm("Να σβηστούν το Gantt και ο πίνακας;")) { work(e, {}); ganttView(box, e); }
+      }
+      else if (a.dataset.act === "check") out.innerHTML = outHTML(checkGantt(e, sol, w, card));
+    });
+    card.addEventListener("input", function (ev) {
+      var i = ev.target.closest("[data-f]");
+      if (!i) return;
+      w.v[i.dataset.f] = i.value; save();
+      i.classList.remove("ok", "bad");
+    });
+  }
+
+  function checkGantt(e, sol, w, card) {
+    var P = e.procs, pre = preemptive(e), lines = [], ok = true;
+    var cells = card.querySelectorAll(".sl-c");
+    cells.forEach(function (c) { c.classList.remove("bad"); });
+    var bad = -1;
+    for (var t = 0; t < sol.cells.length; t++) if (w.g[t] !== sol.cells[t]) { bad = t; break; }
+    if (bad >= 0) {
+      ok = false;
+      cells[bad].classList.add("bad");
+      lines.push({ c: "bad", s: "✘ Gantt: το κουτάκι " + bad + "→" + (bad + 1) + " δεν είναι σωστό (" + (w.g[bad] == null ? "είναι άδειο" : "έβαλες " + P[w.g[bad]][0]) + ")." });
+      lines.push({ c: "tip", s: "💡 " + whyAt(e, sol, bad) });
+    } else lines.push({ c: "good", s: "✔ Το διάγραμμα Gantt είναι σωστό." });
+
+    var fields = pre ? [["f", "τέλος", sol.fin], ["w", "αναμονή", sol.wait]] : [["s", "αρχίζει", sol.start], ["f", "τέλος", sol.fin], ["w", "αναμονή", sol.wait]];
+    var empty = 0, wrong = [], wrongKinds = {};
+    P.forEach(function (p, i) {
+      fields.forEach(function (f) {
+        var el = card.querySelector('[data-f="' + i + f[0] + '"]'), v = w.v[i + f[0]];
+        el.classList.remove("ok", "bad");
+        if (v == null || String(v).trim() === "") { empty++; return; }
+        if (numOk(v, f[2][i])) el.classList.add("ok");
+        else { el.classList.add("bad"); wrong.push(p[0] + " " + f[1]); wrongKinds[f[0]] = 1; }
+      });
+    });
+    if (empty || wrong.length) ok = false;
+    if (empty) lines.push({ c: "bad", s: "✘ Συμπλήρωσε όλο τον πίνακα (λείπουν " + empty + " κουτάκια)." });
+    if (wrong.length) {
+      lines.push({ c: "bad", s: "✘ Λάθος στον πίνακα: " + wrong.slice(0, 4).join(", ") + (wrong.length > 4 ? " και άλλα " + (wrong.length - 4) : "") + "." });
+      if (wrongKinds.s) lines.push({ c: "tip", s: "💡 Αρχίζει = η στιγμή που η διεργασία εμφανίζεται πρώτη φορά στο Gantt." });
+      if (wrongKinds.f) lines.push({ c: "tip", s: "💡 Τελειώνει = η στιγμή που κλείνει το τελευταίο της κουτάκι στο Gantt." });
+      if (wrongKinds.w) lines.push({ c: "tip", s: "💡 Αναμονή = " + (pre ? "τέλος − άφιξη − εκτέλεση." : "αρχίζει − άφιξη.") });
+    }
+    if (!empty && !wrong.length) lines.push({ c: "good", s: "✔ Ο πίνακας είναι σωστός." });
+
+    var avgEl = card.querySelector('[data-f="avg"]'), av = w.v.avg;
+    avgEl.classList.remove("ok", "bad");
+    if (av == null || String(av).trim() === "") { ok = false; lines.push({ c: "bad", s: "✘ Λείπει ο μέσος χρόνος αναμονής." }); }
+    else if (numOk(av, sol.avg)) { avgEl.classList.add("ok"); lines.push({ c: "good", s: "✔ Ο μέσος όρος είναι σωστός." }); }
+    else {
+      ok = false; avgEl.classList.add("bad");
+      lines.push({ c: "bad", s: "✘ Ο μέσος όρος δεν είναι σωστός." });
+      lines.push({ c: "tip", s: "💡 Πρόσθεσε τις αναμονές και διαίρεσε με το πλήθος των διεργασιών (" + P.length + "). Αν δεν βγαίνει ακριβής, γράψε 2 δεκαδικά (π.χ. 4,33)." });
+    }
+    lines.unshift(ok ? { c: "good big", s: "🎉 Σωστό! Gantt, πίνακας και μέσος όρος, όλα σωστά." } : { c: "bad big", s: "🧪 Σχεδόν! Δες τι χρειάζεται διόρθωση:" });
+    if (ok) solved(e);
+    return lines;
+  }
+
+  // εξήγηση για το πρώτο λάθος κουτάκι
+  function whyAt(e, sol, t) {
+    var P = e.procs, cx = sol.ctx[t], when = "Τη στιγμή " + t;
+    function nm(i) { return P[i][0]; }
+    if (cx.cur < 0) return when + " δεν περιμένει καμία διεργασία: όσες ήρθαν έχουν τελειώσει και η επόμενη δεν έχει φτάσει. Ο επεξεργαστής μένει άδειος, άφησε το κουτάκι λευκό.";
+    if (e.alg === "rr") {
+      if (!cx.fresh) return "Η " + nm(cx.cur) + " πήρε τον επεξεργαστή και τον κρατά μέχρι να λήξει το κβάντο (" + e.q + ") ή να τελειώσει.";
+      return when + " η ουρά είναι: " + cx.queue.map(nm).join(" → ") + ". Τον επεξεργαστή τον παίρνει η πρώτη της ουράς. Όποια δεν τελειώνει στο κβάντο της πάει στο τέλος της ουράς, πίσω από όσες ήρθαν στο μεταξύ.";
+    }
+    if (e.alg === "srtf" || e.alg === "prio-p") {
+      var lst = cx.cand.map(function (i) { return nm(i) + " (" + (e.alg === "srtf" ? "υπόλοιπο " + cx.rem[i] : "προτεραιότητα " + P[i][3]) + ")"; }).join(", ");
+      return when + " έχουν φτάσει και δεν έχουν τελειώσει: " + lst + ". " + (e.alg === "srtf"
+        ? "Το SRTF τρέχει όποια έχει τον μικρότερο υπόλοιπο χρόνο (σε ισοπαλία συνεχίζει αυτή που ήδη τρέχει)."
+        : "Τρέχει η πιο σημαντική (μικρότερος αριθμός). Αν φτάσει πιο σημαντική, η τρέχουσα σταματά.");
+    }
+    if (!cx.fresh) return when + " τρέχει η " + nm(cx.cur) + " και το " + ALG[e.alg] + " δεν διακόπτει: συνεχίζει μέχρι να τελειώσει.";
+    var desc = { fcfs: function (i) { return "άφιξη " + P[i][1]; }, sjf: function (i) { return "εκτέλεση " + P[i][2]; }, prio: function (i) { return "προτεραιότητα " + P[i][3]; } }[e.alg];
+    var rule = { fcfs: "Το FCFS διαλέγει όποια ήρθε πρώτη.", sjf: "Το SJF διαλέγει αυτή με τη μικρότερη εκτέλεση (σε ισοπαλία, όποια ήρθε πρώτη).", prio: "Διαλέγεις την πιο σημαντική (μικρότερος αριθμός)." }[e.alg];
+    return when + " ο επεξεργαστής είναι ελεύθερος. Έχουν φτάσει και περιμένουν: " + cx.cand.map(function (i) { return nm(i) + " (" + desc(i) + ")"; }).join(", ") + ". " + rule;
+  }
+
+  // ---------- αποστολές στο τερματικό ----------
+  function exSim(e, keep) {
+    var s = newSim(e.os);
+    s.stepOk = keep || [];
+    s.after = function (s) { termAfter(e, s); };
+    return s;
+  }
+  function askOk(e, s, i, v) {
+    var a = e.asks[i].a, list = typeof a === "function" ? a(s) : a, val = norm(v);
+    if (!val) return false;
+    return list.some(function (x) {
+      if (x instanceof RegExp) return x.test(val);
+      var y = norm(x);
+      return y === val || y.replace(/[\s.,]/g, "") === val.replace(/[\s.,]/g, "");
+    });
+  }
+  function termAfter(e, s) {
+    var newly = [];
+    e.steps.forEach(function (st, i) { if (!s.stepOk[i] && st.check(s)) { s.stepOk[i] = true; newly.push(i); } });
+    newly.forEach(function (i) { print(s, G("✔ Βήμα " + (i + 1) + ": " + e.steps[i].t)); });
+    if (newly.length && L.ex === e && s === current) paintSteps(e, s);
+    termTry(e, s);
+  }
+  function termTry(e, s) {
+    if (isDone(e) || !e.steps.every(function (st, i) { return s.stepOk[i]; })) return;
+    var ans = work(e).a || [];
+    if (!(e.asks || []).every(function (q, i) { return askOk(e, s, i, ans[i]); })) {
+      if (!s.askNag) { s.askNag = 1; print(s, T("Έκανες όλα τα βήματα! Συμπλήρωσε τώρα και τις απαντήσεις στα κουτάκια πάνω από το τερματικό.")); }
+      return;
+    }
+    print(s, G("🏆 Η άσκηση «" + e.title + "» ολοκληρώθηκε! +" + EX_XP + " XP"));
+    solved(e);
+  }
+  function paintSteps(e, s) {
+    var ol = L.el.querySelector(".sl-st");
+    if (!ol) return;
+    var all = isDone(e);
+    ol.innerHTML = e.steps.map(function (st, i) {
+      var ok = all || s.stepOk[i];
+      return '<li class="' + (ok ? "ok" : "") + '"><span class="sl-dot">' + (ok ? "✓" : i + 1) + '</span><span class="sl-stt"><span class="sl-tx">' + esc(st.t) + "</span>" +
+        '<button type="button" class="ms-hint" data-h aria-label="Βοήθεια για το βήμα ' + (i + 1) + '">💡</button>' +
+        '<span class="ms-help" hidden>Δοκίμασε' + (st.hint.length > 1 ? " (μία-μία)" : "") + ": " + st.hint.map(function (h) { return '<code data-cmd="' + esc(h) + '">' + esc(h) + "</code>"; }).join(" ") + "</span></span></li>";
+    }).join("");
+  }
+  function termView(box, e) {
+    var s = exSims[e.id] || (exSims[e.id] = exSim(e)), w = work(e), ans = w.a || [], done = isDone(e);
+    current = s;
+    box.innerHTML = '<div class="sticker sl-card"><div class="sl-lbl">Βήματα <small>' + (e.os === "linux" ? "στο τερματικό Linux" : "στη Γραμμή εντολών των Windows") + "</small></div><ol class=\"sl-st\"></ol>" +
+      (e.asks ? '<div class="sl-lbl">Βρες και γράψε <small>η απάντηση βρίσκεται στην έξοδο των εντολών</small></div><div class="sl-asks">' + e.asks.map(function (q, i) {
+        var ok = askOk(e, s, i, ans[i]) || (done && ans[i]);
+        return '<label class="sl-ask"><span>' + esc(q.q) + '</span><input class="sl-in sl-wide' + (ok ? " ok" : "") + '" data-ask="' + i + '" autocomplete="off" autocapitalize="off" spellcheck="false" value="' + esc(ans[i] || "") + '"><b class="sl-mark">' + (ok ? "✓" : "") + "</b></label>";
+      }).join("") + "</div>" : "") +
+      "</div>" +
+      '<div class="sl-term">' + vtHTML(s) + "</div>" +
+      '<div class="sl-tools"><button type="button" class="btn check" data-act="restart" title="Ο υπολογιστής ξεκινά από την αρχή· τα βήματα που έκανες μένουν">↺ Επανεκκίνηση υπολογιστή</button></div>';
+    paintSteps(e, s);
+    bindVT(box.querySelector(".sl-term"));
+    var card = box.firstChild;
+    card.addEventListener("click", function (ev) {
+      var code = ev.target.closest("[data-cmd]");
+      if (code) { fillCmd(code.dataset.cmd); return; }
+      var h = ev.target.closest("[data-h]");
+      if (h) { var help = h.parentNode.querySelector(".ms-help"); help.hidden = !help.hidden; }
+    });
+    card.addEventListener("input", function (ev) {
+      var inp = ev.target.closest("[data-ask]");
+      if (!inp) return;
+      var i = +inp.dataset.ask, wk = work(e), sim = exSims[e.id];
+      wk.a = wk.a || []; wk.a[i] = inp.value; work(e, wk);
+      var ok = askOk(e, sim, i, inp.value);
+      inp.classList.toggle("ok", ok);
+      inp.parentNode.querySelector(".sl-mark").textContent = ok ? "✓" : "";
+      if (ok) termTry(e, sim);
+    });
+    box.querySelector('[data-act="restart"]').addEventListener("click", function () {
+      clearTimeout(s.timer);
+      exSims[e.id] = exSim(e, s.stepOk.slice());
+      termView(box, e);
+    });
+  }
+
   window.LAB = {
-    render: function (el, oses, theApi) { api = theApi; mount(el, oses); },
+    render: render,
     missions: MISSIONS,
-    _test: { newSim: newSim, run: function (s, line) { current = s; runLine(s, line, null); }, setApi: function (a) { api = a; } }
+    lessons: LESSONS,
+    _test: { newSim: newSim, run: function (s, line) { current = s; runLine(s, line, null); }, setApi: function (a) { api = a; }, schedule: schedule, numOk: numOk, askOk: askOk }
   };
 })();
