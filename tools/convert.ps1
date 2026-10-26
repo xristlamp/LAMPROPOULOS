@@ -12,7 +12,7 @@ $map = @(
   @("ΣΑΕΚ ΜΑΡΚΟΠΟΥΛΟΥ\ΣΛΣ_Εργαστήριο02_ΠΡΑΚΤΙΚΟ.pptx",                  "markopoulo\sls-02-praktiko"),
   @("ΣΑΕΚ_GLYFADA\Μάθημα01_Γνωριμία_με_την_Python_v2.pptx",              "glyfada\python-01-gnorimia"),
   @("ΣΑΕΚ_GLYFADA\Μάθημα02_if_while_for.pptx",                           "glyfada\python-02-if-while-for"),
-  @("ΣΑΕΚ_GLYFADA\Μάθημα03_Λίστες_και_πλειάδες.pptx",                    "glyfada\python-03-listes"),
+  @("ΣΑΕΚ_GLYFADA\Μάθημα03_Λίστες_και_πλειάδες_v2.pptx",                 "glyfada\python-03-listes"),
   @("ΣΑΕΚ_GLYFADA\Μάθημα04_Σύνολα_και_λεξικά.pptx",                      "glyfada\python-04-syn-lex"),
   @("ΣΑΕΚ_GLYFADA\Μάθημα05_Αρχεία_και_εξαιρέσεις.pptx",                  "glyfada\python-05-arxeia")
 )
