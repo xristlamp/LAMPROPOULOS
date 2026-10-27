@@ -2306,7 +2306,7 @@
   var DECKS = {
     "1t": ["Θεωρία 1", "files/markopoulo/sls-01-theoria.pdf"], "1p": ["Πρακτικό 1", "files/markopoulo/sls-01-praktiko.pdf"],
     "2t": ["Θεωρία 2", "files/markopoulo/sls-02-theoria.pdf"], "2p": ["Πρακτικό 2", "files/markopoulo/sls-02-praktiko.pdf"],
-    "3": ["Εργαστήριο 3", "files/markopoulo/sls-03-fcfs-sjf.pdf"], "4": ["Εργαστήριο 4", null]
+    "3": ["Εργαστήριο 3", "files/markopoulo/sls-03-fcfs-sjf.pdf?v=2"], "4": ["Εργαστήριο 4", null]
   };
   var REFS = {
     e1a: ["1t", [6, 9]], e1b: ["1t", [7]], e1c: ["1p", [6]], e1d: ["1p", [10]], e1e: ["1p", [16]], e1f: ["1t", [10, 11]], e1g: ["1t", [13, 14]], e1h: ["1t", [8]],
