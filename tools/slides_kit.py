@@ -4,7 +4,7 @@
 #   start("python-04-syn-lex.pptx")      # κρατά την 1η διαφάνεια και το θέμα του παλιού αρχείου
 #   s = new(2, "ΣΤΟΧΟΙ", "Τι θα ξέρεις στο τέλος") ...
 #   finish("Μάθημα04_..._v2.pptx", 24)
-import math, os, re, sys
+import copy, math, os, re, sys
 from pptx import Presentation
 from pptx.util import Emu, Pt
 from pptx.dml.color import RGBColor
@@ -12,6 +12,7 @@ from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.enum.dml import MSO_LINE
 from pptx.oxml.ns import qn
+from pptx.opc.constants import RELATIONSHIP_TYPE as RT
 SITE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # ---------- χρώματα & διαστάσεις (ίδια με τα άλλα μαθήματα) ----------
@@ -26,13 +27,25 @@ TOP = 1417320
 FOOT_Y = 6053328
 
 prs = LAYOUT = None
+CHROME = []
 
 
-def start(src_name):
-    """Ανοίγει το παλιό pptx του μαθήματος (από files/glyfada) και κρατά μόνο την 1η διαφάνεια."""
+def start(src_name, folder="glyfada"):
+    """Ανοίγει το παλιό pptx του μαθήματος (από files/<folder>, ή πλήρες path) και κρατά μόνο την 1η διαφάνεια.
+    Αν το αρχείο δεν έχει layout «SAEK» (π.χ. Μαρκόπουλο), αντιγράφει το πλαίσιο (μπάρα, λογότυπο, σχολή, όνομα)
+    από τη 2η διαφάνεια σε κάθε νέα διαφάνεια."""
     global prs, LAYOUT
-    prs = Presentation(os.path.join(SITE, "files", "glyfada", src_name))
-    LAYOUT = [l for l in prs.slide_layouts if l.name == "SAEK"][0]
+    prs = Presentation(os.path.join(SITE, "files", folder, src_name))
+    saek = [l for l in prs.slide_layouts if l.name == "SAEK"]
+    LAYOUT = saek[0] if saek else prs.slides[0].slide_layout
+    CHROME.clear()
+    if not saek and len(prs.slides) > 1:
+        src = prs.slides[1]
+        bg = src._element.cSld.bg
+        if bg is not None: CHROME.append((copy.deepcopy(bg), "bg"))
+        for sh in list(src.shapes)[:4]:                   # μπάρα, λογότυπο, σχολή, όνομα
+            img = src.part.related_part(sh._element.blipFill.blip.rEmbed) if sh.shape_type == 13 else None   # 13 = εικόνα
+            CHROME.append((copy.deepcopy(sh._element), img))
     ids = prs.slides._sldIdLst
     for sid in list(ids)[1:]:
         prs.part.drop_rel(sid.rId)
@@ -47,9 +60,16 @@ def title_meta(text):
             sh.text_frame.paragraphs[0].runs[0].text = text
 
 
-def finish(out_name, count):
-    """Γράφει στο Desktop\ΣΑΕΚ_GLYFADA (ή στο path του 1ου ορίσματος)."""
-    out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.expanduser("~"), "Desktop", "ΣΑΕΚ_GLYFADA", out_name)
+def title_slide(top, title, sub, meta, foot):
+    """Ξαναγράφει όλη την 1η διαφάνεια (για νέο μάθημα που ξεκινά από το αρχείο ενός άλλου)."""
+    texts = [sh for sh in prs.slides[0].shapes if sh.has_text_frame]
+    for sh, text in zip(texts, (top, title, sub, meta, foot)):
+        sh.text_frame.paragraphs[0].runs[0].text = text
+
+
+def finish(out_name, count, folder="ΣΑΕΚ_GLYFADA"):
+    """Γράφει στο Desktop/<folder> (ή στο path του 1ου ορίσματος)."""
+    out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.expanduser("~"), "Desktop", folder, out_name)
     assert len(prs.slides) == count, len(prs.slides)
     prs.save(out)
     print("OK", out, len(prs.slides), "διαφάνειες")
@@ -70,8 +90,9 @@ def run(p, text, size, color=INK, font=SANS, bold=False, spc=None):
     return r
 
 def rich(p, text, size, color=INK, font=SANS, bold_color=None):
-    """**έντονο** μέσα στο κείμενο"""
-    for i, part in enumerate(re.split(r"\*\*", text)):
+    """**έντονο** μέσα στο κείμενο · \\*\\* = σκέτα αστεράκια (π.χ. \\*\\*kwargs)"""
+    for i, part in enumerate(re.split(r"(?<!\\)\*\*", text)):
+        part = part.replace("\\*", "*")
         if part: run(p, part, size, (bold_color or color) if i % 2 else color, font, bold=bool(i % 2))
 
 def box(s, x, y, w, h, anchor=MSO_ANCHOR.TOP):
@@ -135,8 +156,8 @@ def footer(s, tag, text):
     run(p, tag + "   ", 9, GOLD, MONO, bold=True, spc=100)
     rich(p, text, 10.5, MUTED, SANS)
 
-KW = set("for in if elif else while break continue pass True False None and or not import with as try except finally del".split())
-BI = set("print input int float str len range sum max min sorted round list tuple abs set dict open".split())
+KW = set("for in if elif else while break continue pass True False None and or not import from with as try except finally del def return lambda global".split())
+BI = set("print input int float str len range sum max min sorted round list tuple abs set dict open enumerate zip map filter help".split())
 TOK = re.compile(r'(#.*$)|(f?"[^"]*")|([A-Za-z_]\w*)|(\s+)|(.)')
 
 def code_line(p, line, size):
@@ -236,6 +257,14 @@ def table(s, x, y, colw, rows, mono=(), size=10.5, row_h=338328, head=True, hl=N
 
 def new(num, kicker, title, lab=None, title_w=None):
     s = prs.slides.add_slide(LAYOUT)
+    for el, img in CHROME:
+        el = copy.deepcopy(el)
+        if img == "bg":                                   # φόντο
+            s._element.cSld.insert(0, el)
+            continue
+        if img is not None:
+            el.blipFill.blip.rEmbed = s.part.relate_to(img, RT.IMAGE)
+        s.shapes._spTree.append(el)
     kicker_title(s, num, kicker, title, title_w or (8686800 if lab else 9692640))
     if lab: lab_badge(s, lab)
     return s

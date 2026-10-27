@@ -10,6 +10,8 @@
     need:  [{ re: /regex στον κώδικα/, msg: "μήνυμα αν λείπει" }]   (προαιρετικό)
     setup: "κώδικας Python που τρέχει πριν" (προαιρετικό· και ανά τεστ: tests[i].setup)
     post:  "κώδικας Python που τρέχει μετά, μόνο στον έλεγχο" (προαιρετικό· π.χ. δείχνει τι γράφτηκε σε αρχείο)
+  Βοηθοί: RM / WRITE / SHOW / SHOWCSV για αρχεία, MOD(όνομα, κώδικας) για έτοιμο module, DICE(3, 5) για «στημένα» ζάρια,
+          PLOT (post που περιγράφει το γράφημα σε κείμενο), NOLOOP (need: χωρίς for / while).
 */
 (function () {
   "use strict";
@@ -23,6 +25,22 @@
   function WRITE(name, text) { return "with open(" + JSON.stringify(name) + ", 'w', encoding='utf-8', newline='') as _f: _f.write(" + JSON.stringify(text) + ")\n"; }
   function SHOW(name) { return "try:\n    with open(" + JSON.stringify(name) + ", encoding='utf-8-sig', newline='') as _f: print('\\n📄 " + name + ":', repr(_f.read()))\nexcept FileNotFoundError:\n    print('\\n📄 " + name + ": δεν φτιάχτηκε')\n"; }
   function SHOWCSV(name) { return "import csv as _csv\ntry:\n    with open(" + JSON.stringify(name) + ", encoding='utf-8-sig', newline='') as _f: print('\\n📄 " + name + ":', list(_csv.reader(_f)))\nexcept FileNotFoundError:\n    print('\\n📄 " + name + ": δεν φτιάχτηκε')\n"; }
+  // Μάθημα 7: modules, ζάρια, γραφήματα
+  function MOD(name, text) { return "import sys as _s, importlib as _il\nif '.' not in _s.path: _s.path.insert(0, '.')\n" + WRITE(name + ".py", text) + "_s.modules.pop(" + JSON.stringify(name) + ", None)\n_il.invalidate_caches()\n"; }
+  function DICE() { return "import random as _r\n_seq = iter(" + JSON.stringify([].slice.call(arguments)) + ")\n_r.randint = lambda a, b: next(_seq)\n"; }
+  var PLOT = [
+    "import sys as _s",
+    "if 'matplotlib.pyplot' in _s.modules:",
+    "    _p = _s.modules['matplotlib.pyplot']",
+    "    for _n in _p.get_fignums():",
+    "        for _a in _p.figure(_n).axes:",
+    "            print('\\n📊 τίτλος:', _a.get_title(), '| y:', _a.get_ylabel())",
+    "            for _l in _a.lines: print('📊 γραμμή:', ' '.join('%g' % _v for _v in _l.get_ydata()))",
+    "            if _a.patches: print('📊 ύψη:', ' '.join('%g' % _b.get_height() for _b in _a.patches))",
+    "else:",
+    "    print('\\n📊 δεν φτιάχτηκε γράφημα')",
+    ""].join("\n");
+  var NOLOOP = { re: /^(?![\s\S]*\b(for|while)\b)/, msg: "Χωρίς for / while: λύσ' το με αναδρομή!" };
 
   // ======================= ΜΑΘΗΜΑΤΑ & ΑΣΚΗΣΕΙΣ =======================
   var LESSONS = [
@@ -552,14 +570,318 @@
                   { in: ["Πρώτη μέρα"], setup: RM("notes.txt"), has: [/1\.\s*Πρώτη μέρα/], not: [/(^|\n)2\./] }],
           need: [{ re: /["']a["']/, msg: "Πρόσθεσε στο τέλος με mode \"a\" (το \"w\" σβήνει τις παλιές)." }] }
       ]
+    },
+    {
+      id: "m6", num: 6, title: "Συναρτήσεις", short: "Συναρτήσεις", date: "2026-11-09",
+      // σταδιακά: 1–6 εύκολες (ένα βήμα η καθεμία), 7–13 μέτριες, 14–16 δύσκολες, 17 για το σπίτι
+      // το post καλεί τη συνάρτηση του μαθητή με άλλες τιμές (🔎), για να μη «περνάει» μια λύση χωρίς συνάρτηση
+      ex: [
+        { id: "m6_01", tag: "Εύκολο", title: "Η πρώτη μου συνάρτηση",
+          desc: "Φτιάξε τη συνάρτηση hello() που εμφανίζει «Γεια σου!» και από κάτω «Καλή αρχή στο μάθημα.». Μετά κάλεσέ τη δύο φορές.",
+          ex: "Γεια σου!\nΚαλή αρχή στο μάθημα.\nΓεια σου!\nΚαλή αρχή στο μάθημα.",
+          starter: "# 1. Όρισε τη συνάρτηση hello() με def\n\n# 2. Κάλεσέ τη δύο φορές\n",
+          hint: 'def hello(): και από κάτω, με 4 κενά: print("Γεια σου!") και print("Καλή αρχή στο μάθημα."). Μετά, χωρίς εσοχή, δύο φορές: hello()',
+          tests: [{ in: [], has: [/Γεια σου![\s\S]*μάθημα\.[\s\S]*Γεια σου![\s\S]*μάθημα\./] }],
+          need: [{ re: /def\s+hello\s*\(\s*\)\s*:/, msg: "Όρισε τη συνάρτηση με def hello():" }, { re: /^hello\s*\(\s*\)[\s\S]*^hello\s*\(\s*\)/m, msg: "Κάλεσε τη συνάρτηση δύο φορές: hello()" }] },
+        { id: "m6_02", tag: "Εύκολο", title: "Χαιρετισμός με παράμετρο",
+          desc: "Φτιάξε τη συνάρτηση greet(name) που εμφανίζει «Γεια σου, <όνομα>!». Διάβασε ένα όνομα με input() και κάλεσε τη greet με αυτό.",
+          ex: "Όνομα: Νίκος\nΓεια σου, Νίκος!",
+          starter: 'def greet(name):\n    # εμφάνισε τον χαιρετισμό με το name\n    \n\nn = input("Όνομα: ")\n# κάλεσε τη greet\n',
+          hint: 'Μέσα στη συνάρτηση: print(f"Γεια σου, {name}!"). Στο τέλος: greet(n)',
+          post: "print('🔎 greet(\"Ελένη\"):')\ngreet('Ελένη')\n",
+          tests: [{ in: ["Νίκος"], has: ["Γεια σου, Νίκος!", "Γεια σου, Ελένη!"] }, { in: ["Μαρία"], has: ["Γεια σου, Μαρία!"] }],
+          need: [{ re: /def\s+greet\s*\(\s*\w+\s*\)\s*:/, msg: "Όρισε τη συνάρτηση με def greet(name):" }] },
+        { id: "m6_03", tag: "Εύκολο", title: "Τετράγωνο με return",
+          desc: "Φτιάξε τη συνάρτηση square(x) που δίνει πίσω (με return) το τετράγωνο του x. Εμφάνισε το square(7) και το square(3) + square(4).",
+          ex: "49\n25",
+          starter: "def square(x):\n    # δώσε πίσω το x επί x\n    \n\n",
+          hint: "Μέσα: return x * x. Από κάτω: print(square(7)) και print(square(3) + square(4))",
+          post: "print('🔎 square(10) + 1 =', square(10) + 1)\n",
+          tests: [{ in: [], has: [N(49), N(25), "🔎 square(10) + 1 = 101"] }],
+          need: [{ re: /def\s+square\s*\(/, msg: "Όρισε τη συνάρτηση με def square(x):" }, { re: /\breturn\b/, msg: "Η συνάρτηση πρέπει να δίνει πίσω το αποτέλεσμα με return (όχι print)." }] },
+        { id: "m6_04", tag: "Εύκολο", title: "Ο μεγαλύτερος από δύο",
+          desc: "Φτιάξε τη συνάρτηση bigger(a, b) που επιστρέφει τον μεγαλύτερο από τους δύο, με if (χωρίς max). Διάβασε δύο ακέραιους και εμφάνισε «Μεγαλύτερος: N».",
+          ex: "a: 4\nb: 9\nΜεγαλύτερος: 9",
+          starter: 'def bigger(a, b):\n    # με if / else: return τον μεγαλύτερο\n    \n\na = int(input("a: "))\nb = int(input("b: "))\n',
+          hint: 'Μέσα: if a > b: return a, αλλιώς return b. Στο τέλος: print("Μεγαλύτερος:", bigger(a, b))',
+          post: "print('🔎', bigger(-3, -8), bigger(2, 5))\n",
+          tests: [{ in: ["4", "9"], has: [/Μεγαλύτερος\D*9/, "🔎 -3 5"] }, { in: ["12", "5"], has: [/Μεγαλύτερος\D*12/] }],
+          need: [{ re: /def\s+bigger\s*\(/, msg: "Όρισε τη συνάρτηση με def bigger(a, b):" }, { re: /\breturn\b/, msg: "Δώσε πίσω τον μεγαλύτερο με return." }, { re: /^(?![\s\S]*\bmax\s*\()/, msg: "Λύσ' το με if, χωρίς max()." }] },
+        { id: "m6_05", tag: "Εύκολο", title: "Δύναμη με προεπιλογή",
+          desc: "Φτιάξε τη power(base, exp=2) που επιστρέφει το base υψωμένο στο exp. Εμφάνισε power(5), power(2, 10) και power(3, exp=3).",
+          ex: "25\n1024\n27",
+          starter: "def power(base, exp=2):\n    \n\n",
+          hint: "Μέσα: return base ** exp. Μετά τρία print(): print(power(5)), print(power(2, 10)), print(power(3, exp=3))",
+          post: "print('🔎', power(4), power(2, 3))\n",
+          tests: [{ in: [], has: [N(25), N(1024), N(27), "🔎 16 8"] }],
+          need: [{ re: /def\s+power\s*\(\s*base\s*,\s*exp\s*=\s*2\s*\)/, msg: "Όρισε τη συνάρτηση ακριβώς έτσι: def power(base, exp=2):" }, { re: /exp\s*=\s*3/, msg: "Την τρίτη φορά δώσε το exp με όνομα: power(3, exp=3)" }] },
+        { id: "m6_06", tag: "Εύκολο", title: "Εισιτήρια",
+          desc: "Η ticket είναι έτοιμη. Κάλεσέ τη τρεις φορές: Άννα θέση 12 (κανονική τιμή), Νίκος θέση 5 με ονομαστικά ορίσματα (πρώτα seat=, μετά name=), Ελένη θέση 7 με price=7.5.",
+          ex: "Άννα · θέση 12 · 10€\nΝίκος · θέση 5 · 10€\nΕλένη · θέση 7 · 7.5€",
+          starter: 'def ticket(name, seat, price=10):\n    print(f"{name} · θέση {seat} · {price}€")\n\n# οι τρεις κλήσεις\n',
+          hint: 'ticket("Άννα", 12) · ticket(seat=5, name="Νίκος") · ticket("Ελένη", 7, price=7.5)',
+          tests: [{ in: [], has: [/Άννα · θέση 12 · 10€/, /Νίκος · θέση 5 · 10€/, /Ελένη · θέση 7 · 7\.5€/] }],
+          need: [{ re: /ticket\s*\(\s*seat\s*=/, msg: "Για τον Νίκο: ticket(seat=5, name=\"Νίκος\")" }, { re: /price\s*=\s*7\.5/, msg: "Για την Ελένη δώσε την τιμή με όνομα: price=7.5" }] },
+        { id: "m6_07", tag: "Μέτριο", title: "Στατιστικά: 3 τιμές πίσω",
+          desc: "Φτιάξε τη stats(nums) που επιστρέφει τρεις τιμές: μικρότερο, μεγαλύτερο, μέσο όρο. Μοίρασέ τες σε lo, hi, avg για τη λίστα grades και εμφάνισέ τες (μέσος όρος με 2 δεκαδικά).",
+          ex: "Μικρότερος: 8\nΜεγαλύτερος: 17\nΜέσος όρος: 13.00",
+          starter: "def stats(nums):\n    \n\ngrades = [12, 8, 17, 15]\n",
+          hint: 'Μέσα: return min(nums), max(nums), sum(nums) / len(nums). Μετά lo, hi, avg = stats(grades) και τρία print(), π.χ. print(f"Μέσος όρος: {avg:.2f}")',
+          post: "print('🔎', stats([5, 1, 3]))\n",
+          tests: [{ in: [], has: [/Μικρότερος\D*8\b/, /Μεγαλύτερος\D*17\b/, "13.00", "🔎 (1, 5, 3.0)"] }],
+          need: [{ re: /\w+\s*,\s*\w+\s*,\s*\w+\s*=\s*stats\s*\(/, msg: "Μοίρασε τις τρεις τιμές: lo, hi, avg = stats(grades)" }] },
+        { id: "m6_08", tag: "Μέτριο", title: "Σκορ με global",
+          desc: "Το score ξεκινά από 0. Φτιάξε την add_points(p) που αυξάνει το καθολικό score κατά p. Κάλεσέ τη για 10, 25 και 5 και εμφάνισε «Σκορ: 40».",
+          ex: "Σκορ: 40",
+          starter: "score = 0\n\ndef add_points(p):\n    # άλλαξε το καθολικό score\n    \n\n",
+          hint: 'Μέσα: global score και μετά score = score + p. Από κάτω: add_points(10), add_points(25), add_points(5) και print("Σκορ:", score)',
+          post: "add_points(60)\nprint('🔎 μετά από add_points(60):', score)\n",
+          tests: [{ in: [], has: [/Σκορ\D*40\b/, "🔎 μετά από add_points(60): 100"] }],
+          need: [{ re: /\bglobal\s+score\b/, msg: "Για να αλλάξεις την καθολική μεταβλητή, γράψε πρώτα global score μέσα στη συνάρτηση." }] },
+        { id: "m6_09", tag: "Μέτριο", title: "Άθροισμα με *args",
+          desc: "Φτιάξε την total(*nums) που δέχεται όσους αριθμούς θες και επιστρέφει το άθροισμά τους, με for (όχι sum). Εμφάνισε total(4, 6), total(1, 2, 3, 4) και total().",
+          ex: "10\n10\n0",
+          starter: "def total(*nums):\n    s = 0\n    \n\n",
+          hint: "Μέσα: for n in nums: s = s + n. Μετά τον βρόχο: return s. Από κάτω τρία print().",
+          post: "print('🔎', total(7, 8, 9, 10, 11))\n",
+          tests: [{ in: [], has: [/^10$[\s\S]*^10$/m, /^0$/m, "🔎 45"] }],
+          need: [{ re: /def\s+total\s*\(\s*\*\s*\w+\s*\)/, msg: "Όρισε τη συνάρτηση με def total(*nums):" }, { re: /^(?![\s\S]*\bsum\s*\()/, msg: "Λύσ' το με for, χωρίς sum()." }] },
+        { id: "m6_10", tag: "Μέτριο", title: "Προφίλ με **kwargs",
+          desc: "Φτιάξε την profile(**info) που εμφανίζει κάθε στοιχείο σε δική του γραμμή «κλειδί: τιμή». Κάλεσέ τη με name=\"Άννα\", age=19, city=\"Γλυφάδα\".",
+          ex: "name: Άννα\nage: 19\ncity: Γλυφάδα",
+          starter: "def profile(**info):\n    \n\n",
+          hint: 'Μέσα: for key, value in info.items(): print(f"{key}: {value}"). Κλήση: profile(name="Άννα", age=19, city="Γλυφάδα")',
+          post: "print('🔎')\nprofile(game='Pong', score=7)\n",
+          tests: [{ in: [], has: [/name:\s*Άννα/, /age:\s*19/, /city:\s*Γλυφάδα/, /game:\s*Pong/, /score:\s*7/] }],
+          need: [{ re: /def\s+profile\s*\(\s*\*\*\s*\w+\s*\)/, msg: "Όρισε τη συνάρτηση με def profile(**info):" }] },
+        { id: "m6_11", tag: "Μέτριο", title: "Πίνακας βαθμών",
+          desc: "Με enumerate και zip, εμφάνισε κάθε μαθητή με τον βαθμό του, αριθμημένους από το 1: «1. Νίκος: 9».",
+          ex: "1. Νίκος: 9\n2. Άννα: 17\n3. Ελένη: 15",
+          starter: 'names = ["Νίκος", "Άννα", "Ελένη"]\ngrades = [9, 17, 15]\n',
+          hint: 'Το zip(names, grades) δίνει ζευγάρια (όνομα, βαθμός) και το enumerate τα αριθμεί: for i, (name, g) in enumerate(zip(names, grades), 1): print(f"{i}. {name}: {g}")',
+          tests: [{ in: [], has: [/1\.\s*Νίκος:\s*9\b/, /2\.\s*Άννα:\s*17\b/, /3\.\s*Ελένη:\s*15\b/] }],
+          need: [{ re: /\benumerate\s*\(/, msg: "Αρίθμησε με enumerate(…, 1)." }, { re: /\bzip\s*\(/, msg: "Ένωσε τις δύο λίστες με zip(names, grades)." }] },
+        { id: "m6_12", tag: "Μέτριο", title: "ΦΠΑ με map και filter",
+          desc: "Φτιάξε τη with_vat(p) που επιστρέφει την τιμή με ΦΠΑ 24%, στρογγυλεμένη σε 2 δεκαδικά. Με map εμφάνισε όλες τις τιμές με ΦΠΑ, και με filter μόνο όσες (με ΦΠΑ) είναι πάνω από 5.",
+          ex: "[3.1, 12.4, 5.21, 1.24]\n[12.4, 5.21]",
+          starter: "def with_vat(p):\n    \n\nprices = [2.5, 10, 4.2, 1]\n",
+          hint: "Μέσα: return round(p * 1.24, 2). Μετά new = list(map(with_vat, prices)) και print(new). Για το filter χρειάζεσαι συνάρτηση που δίνει True/False: def over5(p): return p > 5 και print(list(filter(over5, new))).",
+          tests: [{ in: [], has: ["[3.1, 12.4, 5.21, 1.24]", "[12.4, 5.21]"] }],
+          need: [{ re: /\bmap\s*\(/, msg: "Εφάρμοσε τη with_vat σε όλες τις τιμές με map()." }, { re: /\bfilter\s*\(/, msg: "Κράτα όσες είναι πάνω από 5 με filter()." }] },
+        { id: "m6_13", tag: "Μέτριο", title: "Ταξινόμηση με lambda",
+          desc: "Η λίστα products έχει πλειάδες (όνομα, τιμή). Εμφάνισέ τα από το φθηνότερο στο ακριβότερο, «όνομα: τιμή€», και μετά το ακριβότερο με max.",
+          ex: "νερό: 0.5€\nκαφές: 2.5€\nχυμός: 2.8€\nτοστ: 3.2€\nΑκριβότερο: τοστ",
+          starter: 'products = [("καφές", 2.5), ("τοστ", 3.2), ("νερό", 0.5), ("χυμός", 2.8)]\n',
+          hint: 'for name, price in sorted(products, key=lambda p: p[1]): print(f"{name}: {price}€"). Το ακριβότερο: best = max(products, key=lambda p: p[1]) και print("Ακριβότερο:", best[0])',
+          tests: [{ in: [], has: [/νερό: 0\.5€[\s\S]*καφές: 2\.5€[\s\S]*χυμός: 2\.8€[\s\S]*τοστ: 3\.2€/, /Ακριβότερο:?\s*τοστ/] }],
+          need: [{ re: /\blambda\b/, msg: "Πες στο sorted «κατά τι» με key=lambda p: p[1]" }, { re: /\bmax\s*\(/, msg: "Βρες το ακριβότερο με max(…, key=…)." }] },
+        { id: "m6_14", tag: "Δύσκολο", title: "Πρώτοι αριθμοί",
+          desc: "Γράψε την is_prime(n) που επιστρέφει True ή False. Μετά διάβασε ένα n και, καλώντας την is_prime, εμφάνισε τη λίστα με όλους τους πρώτους ως το n και πόσοι είναι.",
+          ex: "Έως: 30\n[2, 3, 5, 7, 11, 13, 17, 19, 23, 29]\nΠλήθος: 10",
+          starter: 'def is_prime(n):\n    """Επιστρέφει True αν ο n είναι πρώτος."""\n    \n\nn = int(input("Έως: "))\nprimes = []\n',
+          hint: "Στην is_prime: αν n < 2: return False. Μετά for d in range(2, int(n ** 0.5) + 1): αν n % d == 0: return False. Μετά τον βρόχο: return True. Στο κυρίως: for k in range(2, n + 1): if is_prime(k): primes.append(k)",
+          post: "print('🔎', is_prime(1), is_prime(2), is_prime(91), is_prime(97))\n",
+          tests: [{ in: ["30"], has: ["[2, 3, 5, 7, 11, 13, 17, 19, 23, 29]", /Πλήθος\D*10\b/, "🔎 False True False True"] }, { in: ["10"], has: ["[2, 3, 5, 7]", /Πλήθος\D*4\b/] }],
+          need: [{ re: /def\s+is_prime\s*\(/, msg: "Όρισε τη συνάρτηση def is_prime(n):" }, { re: /\bis_prime\s*\(\s*\w+\s*\)\s*:/, msg: "Κάλεσε την is_prime μέσα σε if: if is_prime(k):" }] },
+        { id: "m6_15", tag: "Δύσκολο", title: "Ρώτα ξανά, ως συνάρτηση",
+          desc: "Γράψε την read_int(prompt, lo, hi): ρωτά μέχρι ο χρήστης να δώσει ακέραιο από lo έως hi και τον επιστρέφει. Για γράμματα: «Δώσε ακέραιο!». Για αριθμό εκτός ορίων: «Από lo έως hi!». Με αυτή διάβασε ηλικία (15–99) και μήνα (1–12) και εμφάνισε «Ηλικία 19, μήνας 11».",
+          ex: "Ηλικία: δεκαεννιά\nΔώσε ακέραιο!\nΗλικία: 19\nΜήνας: 13\nΑπό 1 έως 12!\nΜήνας: 11\nΗλικία 19, μήνας 11",
+          starter: 'def read_int(prompt, lo, hi):\n    """Ζητά ακέραιο από lo έως hi μέχρι να δοθεί σωστός."""\n    \n\nage = read_int("Ηλικία: ", 15, 99)\nmonth = read_int("Μήνας: ", 1, 12)\nprint(f"Ηλικία {age}, μήνας {month}")\n',
+          hint: 'while True: και μέσα try: n = int(input(prompt)) — except ValueError: print("Δώσε ακέραιο!") και continue. Μετά: if lo <= n <= hi: return n, αλλιώς print(f"Από {lo} έως {hi}!")',
+          tests: [{ in: ["δεκαεννιά", "19", "13", "11"], has: ["Δώσε ακέραιο", "Από 1 έως 12", "Ηλικία 19, μήνας 11"] },
+                  { in: ["120", "20", "5"], has: ["Από 15 έως 99", "Ηλικία 20, μήνας 5"], not: ["Δώσε ακέραιο"] }],
+          need: [{ re: /\btry\s*:/, msg: "Πιάσε τα γράμματα με try / except ValueError (Μάθημα 5)." }, { re: /\breturn\b/, msg: "Δώσε πίσω τον σωστό αριθμό με return." }] },
+        { id: "m6_16", tag: "Ο στόχος", title: "Η αναφορά της τάξης",
+          desc: "Κάθε μαθητής είναι λεξικό με όνομα και λίστα βαθμών. Γράψε την average(st) που επιστρέφει τον μέσο όρο ενός μαθητή, και την report(students, limit=10) που εμφανίζει τους μαθητές από τον καλύτερο στον χειρότερο: «1. Άννα 16.67 ✔» (✔ αν ο μέσος όρος είναι από limit και πάνω, αλλιώς ✘).",
+          ex: "1. Άννα     16.67 ✔\n2. Ελένη    15.00 ✔\n3. Γιώργος   9.67 ✘\n4. Νίκος     9.33 ✘",
+          starter: 'students = [\n    {"name": "Άννα", "grades": [17, 15, 18]},\n    {"name": "Νίκος", "grades": [9, 11, 8]},\n    {"name": "Ελένη", "grades": [14, 16, 15]},\n    {"name": "Γιώργος", "grades": [12, 7, 10]},\n]\n\ndef average(st):\n    \n\ndef report(students, limit=10):\n    \n\nreport(students)\n',
+          hint: 'average: return sum(st["grades"]) / len(st["grades"]). report: for i, st in enumerate(sorted(students, key=average, reverse=True), 1): και μέσα mark = "✔" if average(st) >= limit else "✘" και print(f"{i}. {st[\'name\']:8} {average(st):5.2f} {mark}")',
+          post: "print('🔎 report(…, 15):')\nreport([{'name': 'Κώστας', 'grades': [20]}, {'name': 'Λένα', 'grades': [14, 15]}], 15)\n",
+          tests: [{ in: [], has: [/1\.\s*Άννα\s+16\.67\s*✔/, /2\.\s*Ελένη\s+15\.00\s*✔/, /3\.\s*Γιώργος\s+9\.67\s*✘/, /4\.\s*Νίκος\s+9\.33\s*✘/, /1\.\s*Κώστας\s+20\.00\s*✔/, /2\.\s*Λένα\s+14\.50\s*✘/] }],
+          need: [{ re: /def\s+average\s*\(/, msg: "Γράψε τη συνάρτηση def average(st):" }, { re: /\bkey\s*=/, msg: "Ταξινόμησε «κατά μέσο όρο» με sorted(…, key=average, reverse=True)." }] },
+        { id: "m6_17", tag: "Για το σπίτι", title: "Αριθμομηχανή",
+          desc: "Γράψε την calc(a, op, b) που επιστρέφει το αποτέλεσμα για op \"+\", \"-\", \"*\", \"/\". Για διαίρεση με το 0 ή άγνωστο op επιστρέφει None. Διάβαζε a, op, b μέχρι να δοθεί κενό a, και εμφάνιζε «= αποτέλεσμα» ή «Δεν γίνεται».",
+          ex: "a: 6\nop: *\nb: 7\n= 42.0\na: 1\nop: /\nb: 0\nΔεν γίνεται\na: ",
+          starter: "def calc(a, op, b):\n    \n\n",
+          hint: 'calc: if op == "+": return a + b … elif op == "/" and b != 0: return a / b, και στο τέλος return None. Κυρίως: while True: s = input("a: "), if s == "": break, a = float(s), op = input("op: "), b = float(input("b: ")), r = calc(a, op, b), if r is None: print("Δεν γίνεται") else: print("=", r)',
+          post: "print('🔎', calc(8, '-', 3), calc(1, '%', 2))\n",
+          tests: [{ in: ["6", "*", "7", "1", "/", "0", ""], has: [/=\s*42\b/, "Δεν γίνεται", "🔎 5 None"] },
+                  { in: ["9", "/", "2", "3", "^", "1", ""], has: [/=\s*4\.5\b/, "Δεν γίνεται"] }],
+          need: [{ re: /def\s+calc\s*\(/, msg: "Γράψε τη συνάρτηση def calc(a, op, b):" }, { re: /\bwhile\b/, msg: "Χρησιμοποίησε while (δεν ξέρεις πόσους λογαριασμούς θα κάνει ο χρήστης)." }] }
+      ]
+    },
+    {
+      id: "m7", num: 7, title: "Αναδρομή και βιβλιοθήκες", short: "Αναδρομή & βιβλιοθήκες", date: "2026-11-16",
+      // σταδιακά: 1–8 εύκολες (ένα βήμα η καθεμία), 9–14 μέτριες, 15–17 δύσκολες, 18 για το σπίτι
+      // NumPy / Matplotlib: φορτώνουν μόνα τους όταν ο κώδικας τα κάνει import (δες withPy)
+      ex: [
+        { id: "m7_01", tag: "Εύκολο", title: "Αντίστροφη μέτρηση",
+          desc: "Γράψε την αναδρομική countdown(n) που εμφανίζει n, n − 1, …, 1 και στο τέλος «Φύγαμε!». Χωρίς for και while! Κάλεσέ τη με countdown(5).",
+          ex: "5\n4\n3\n2\n1\nΦύγαμε!",
+          starter: "def countdown(n):\n    if n == 0:\n        # η βάση: τι εμφανίζω στο τέλος;\n        \n    else:\n        # εμφάνισε το n και κάλεσε την countdown με μικρότερο n\n        \n\ncountdown(5)\n",
+          hint: 'Στη βάση: print("Φύγαμε!"). Στο else: print(n) και από κάτω countdown(n - 1).',
+          post: "print('🔎 countdown(2):')\ncountdown(2)\n",
+          tests: [{ in: [], has: [/5\s+4\s+3\s+2\s+1\s+Φύγαμε!/, /🔎 countdown\(2\):\s+2\s+1\s+Φύγαμε!/] }],
+          need: [NOLOOP, { re: /countdown\s*\(\s*n\s*-\s*1\s*\)/, msg: "Η συνάρτηση καλεί τον εαυτό της: countdown(n - 1)" }] },
+        { id: "m7_02", tag: "Εύκολο", title: "Παραγοντικό",
+          desc: "Συμπλήρωσε την αναδρομική factorial(n). Διάβασε ένα n και εμφάνισε «n! = …».",
+          ex: "n: 5\n5! = 120",
+          starter: 'def factorial(n):\n    if n <= 1:          # βάση\n        return 1\n    # αναδρομικό βήμα: n επί το παραγοντικό του n - 1\n    \n\nn = int(input("n: "))\n',
+          hint: 'Αναδρομικό βήμα: return n * factorial(n - 1). Στο τέλος: print(f"{n}! = {factorial(n)}")',
+          post: "print('🔎', factorial(6))\n",
+          tests: [{ in: ["5"], has: ["5! = 120", "🔎 720"] }, { in: ["10"], has: ["10! = 3628800"] }, { in: ["0"], has: ["0! = 1"] }],
+          need: [NOLOOP, { re: /factorial\s*\(\s*n\s*-\s*1\s*\)/, msg: "Αναδρομικό βήμα: return n * factorial(n - 1)" }] },
+        { id: "m7_03", tag: "Εύκολο", title: "Άθροισμα 1 έως n",
+          desc: "Γράψε την αναδρομική sum_to(n) που επιστρέφει 1 + 2 + … + n, χωρίς for, while και sum. Βάση: sum_to(0) = 0. Εμφάνισε το sum_to(100).",
+          ex: "5050",
+          starter: "def sum_to(n):\n    \n\nprint(sum_to(100))\n",
+          hint: "if n == 0: return 0. Αλλιώς: return n + sum_to(n - 1)",
+          post: "print('🔎', sum_to(4))\n",
+          tests: [{ in: [], has: [N(5050), "🔎 10"] }],
+          need: [NOLOOP, { re: /^(?![\s\S]*\bsum\s*\()/, msg: "Χωρίς sum(): με αναδρομή!" }, { re: /sum_to\s*\(\s*n\s*-\s*1\s*\)/, msg: "Η συνάρτηση καλεί τον εαυτό της: sum_to(n - 1)" }] },
+        { id: "m7_04", tag: "Εύκολο", title: "Fibonacci",
+          desc: "Γράψε την αναδρομική fib(n): fib(0) = 0, fib(1) = 1, και κάθε επόμενος είναι το άθροισμα των δύο προηγούμενων. Το πρόγραμμα εμφανίζει τους πρώτους n σε μία γραμμή.",
+          ex: "Πόσοι; 10\n0 1 1 2 3 5 8 13 21 34",
+          starter: 'def fib(n):\n    \n\nn = int(input("Πόσοι; "))\nfor i in range(n):\n    print(fib(i), end=" ")\n',
+          hint: "Βάση: if n <= 1: return n. Αλλιώς: return fib(n - 1) + fib(n - 2)",
+          post: "print()\nprint('🔎 fib(15) =', fib(15))\n",
+          tests: [{ in: ["10"], has: ["0 1 1 2 3 5 8 13 21 34", "🔎 fib(15) = 610"] }, { in: ["5"], has: ["0 1 1 2 3"], not: ["0 1 1 2 3 5"] }],
+          need: [{ re: /fib\s*\(\s*n\s*-\s*1\s*\)[\s\S]*fib\s*\(\s*n\s*-\s*2\s*\)|fib\s*\(\s*n\s*-\s*2\s*\)[\s\S]*fib\s*\(\s*n\s*-\s*1\s*\)/, msg: "Δύο αναδρομικές κλήσεις: return fib(n - 1) + fib(n - 2)" }] },
+        { id: "m7_05", tag: "Εύκολο", title: "Κύκλος με math",
+          desc: "Διάβασε την ακτίνα r ενός κύκλου και εμφάνισε εμβαδό (π·r²) και περίμετρο (2·π·r) με 2 δεκαδικά. Για το π χρησιμοποίησε το math.pi.",
+          ex: "Ακτίνα: 5\nΕμβαδό: 78.54\nΠερίμετρος: 31.42",
+          starter: 'import math\n\nr = float(input("Ακτίνα: "))\n',
+          hint: 'area = math.pi * r ** 2 και print(f"Εμβαδό: {area:.2f}"). Ομοίως η περίμετρος: 2 * math.pi * r',
+          tests: [{ in: ["5"], has: ["78.54", "31.42"] }, { in: ["1"], has: ["3.14", "6.28"] }],
+          need: [{ re: /math\.pi\b/, msg: "Πάρε το π από το module: math.pi" }] },
+        { id: "m7_06", tag: "Εύκολο", title: "Πόσα λεωφορεία;",
+          desc: "Σε κάθε λεωφορείο χωράνε 50 μαθητές. Διάβασε πόσοι πάνε εκδρομή και εμφάνισε πόσα λεωφορεία χρειάζονται (με ceil, που το φέρνεις με from math import ceil) και πόσες θέσεις μένουν άδειες.",
+          ex: "Μαθητές: 120\nΛεωφορεία: 3\nΆδειες θέσεις: 30",
+          starter: '# φέρε το ceil από το math\n\nstudents = int(input("Μαθητές: "))\n',
+          hint: 'Στην αρχή: from math import ceil. buses = ceil(students / 50). Άδειες θέσεις: buses * 50 - students',
+          tests: [{ in: ["120"], has: [/Λεωφορεία\D*3\b/, /Άδειες θέσεις\D*30\b/] }, { in: ["100"], has: [/Λεωφορεία\D*2\b/, /Άδειες θέσεις\D*0\b/] }, { in: ["1"], has: [/Λεωφορεία\D*1\b/, /Άδειες θέσεις\D*49\b/] }],
+          need: [{ re: /from\s+math\s+import\s+[\w\s,]*\bceil\b/, msg: "Φέρε το ceil με from math import ceil" }, { re: /\bceil\s*\(/, msg: "Στρογγύλεψε προς τα πάνω με ceil(students / 50)." }] },
+        { id: "m7_07", tag: "Εύκολο", title: "Δύο ζάρια",
+          desc: "Ρίξε δύο ζάρια με random.randint(1, 6). Εμφάνισε «Ζάρια: 3 και 5», «Άθροισμα: 8», και αν φέρεις ίδια: «Διπλές!».",
+          ex: "Ζάρια: 6 και 6\nΆθροισμα: 12\nΔιπλές!",
+          starter: "import random\n\n",
+          hint: 'a = random.randint(1, 6) και b = random.randint(1, 6). Μετά print("Ζάρια:", a, "και", b), print("Άθροισμα:", a + b) και if a == b: print("Διπλές!")',
+          tests: [{ in: [], setup: DICE(3, 5), has: [/Ζάρια:?\s*3 και 5/, /Άθροισμα\D*8\b/], not: ["Διπλές"] },
+                  { in: [], setup: DICE(6, 6), has: [/Ζάρια:?\s*6 και 6/, /Άθροισμα\D*12\b/, "Διπλές"] }],
+          need: [{ re: /\brandint\s*\(/, msg: "Ρίξε τα ζάρια με random.randint(1, 6)." }] },
+        { id: "m7_08", tag: "Εύκολο", title: "Μέρες ως την προθεσμία",
+          desc: "Διάβασε ημέρα, μήνα και έτος μιας προθεσμίας. Εμφάνισε πόσες μέρες απέχει από τη Δευτέρα 16/11/2026 και ποια μέρα της εβδομάδας πέφτει.",
+          ex: "Ημέρα: 25\nΜήνας: 1\nΈτος: 2027\nΜέρες: 70\nΠέφτει: Δευτέρα",
+          starter: 'from datetime import date\n\ndays = ["Δευτέρα", "Τρίτη", "Τετάρτη", "Πέμπτη", "Παρασκευή", "Σάββατο", "Κυριακή"]\ntoday = date(2026, 11, 16)\n\nd = int(input("Ημέρα: "))\nm = int(input("Μήνας: "))\ny = int(input("Έτος: "))\n',
+          hint: 'deadline = date(y, m, d). Μέρες: (deadline - today).days. Μέρα της εβδομάδας: days[deadline.weekday()]',
+          tests: [{ in: ["25", "1", "2027"], has: [/Μέρες\D*70\b/, /Πέφτει:?\s*Δευτέρα/] }, { in: ["24", "12", "2026"], has: [/Μέρες\D*38\b/, "Πέμπτη"] }, { in: ["25", "12", "2026"], has: [/Μέρες\D*39\b/, "Παρασκευή"] }],
+          need: [{ re: /\.days\b/, msg: "Πόσες μέρες: (deadline - today).days" }, { re: /\.weekday\s*\(/, msg: "Ποια μέρα: days[deadline.weekday()]" }] },
+        { id: "m7_09", tag: "Μέτριο", title: "Το δικό μου module",
+          desc: "Το αρχείο grades_tools.py υπάρχει ήδη (δες τα σχόλια). Κάνε import grades_tools και εμφάνισε τον μέσο όρο της g με 2 δεκαδικά και τους βαθμούς που πέρασαν. Μετά, με from grades_tools import passed, εμφάνισε όσους έχουν από 15 και πάνω.",
+          ex: "Μέσος όρος: 13.00\n[12, 17, 15]\n[17, 15]",
+          starter: "# Το grades_tools.py έχει δύο συναρτήσεις:\n#   average(grades)           → ο μέσος όρος\n#   passed(grades, limit=10)  → λίστα με τους βαθμούς από limit και πάνω\n\ng = [12, 8, 17, 15]\n",
+          hint: 'import grades_tools, μετά print(f"Μέσος όρος: {grades_tools.average(g):.2f}") και print(grades_tools.passed(g)). Τέλος from grades_tools import passed και print(passed(g, 15)).',
+          setup: MOD("grades_tools", 'def average(grades):\n    """Ο μέσος όρος μιας λίστας."""\n    return sum(grades) / len(grades)\n\ndef passed(grades, limit=10):\n    """Οι βαθμοί από limit και πάνω."""\n    result = []\n    for g in grades:\n        if g >= limit:\n            result.append(g)\n    return result\n'),
+          tests: [{ in: [], has: ["13.00", "[12, 17, 15]", "[17, 15]"] }],
+          need: [{ re: /^\s*import\s+grades_tools\b/m, msg: "Φέρε το module με import grades_tools" }, { re: /from\s+grades_tools\s+import\s+[\w\s,]*\bpassed\b/, msg: "Φέρε τη συνάρτηση με from grades_tools import passed" }] },
+        { id: "m7_10", tag: "Μέτριο", title: "Η main() και το __name__",
+          desc: "Βάλε τις τρεις γραμμές δοκιμής μέσα σε μια συνάρτηση main(), και κάλεσέ τη μόνο όταν το αρχείο τρέχει ως πρόγραμμα, με if __name__ == \"__main__\":. (Ο έλεγχος δοκιμάζει και την περίπτωση import: τότε δεν πρέπει να εμφανιστεί τίποτα.)",
+          ex: "0°C = 32.0 °F\n25°C = 77.0 °F\n100°C = 212.0 °F",
+          starter: 'def c_to_f(c):\n    return c * 9 / 5 + 32\n\n# δοκιμή: βάλ\' τα μέσα σε main()\nprint("0°C =", c_to_f(0), "°F")\nprint("25°C =", c_to_f(25), "°F")\nprint("100°C =", c_to_f(100), "°F")\n',
+          hint: 'def main(): και από κάτω, με εσοχή, τα τρία print. Στο τέλος, χωρίς εσοχή: if __name__ == "__main__": και μέσα main()',
+          post: "print('🔎 c_to_f(25) =', c_to_f(25))\n",
+          tests: [{ in: [], has: ["32.0", "77.0", "212.0"] },
+                  { in: [], setup: "__name__ = 'temperature'   # σαν να έγινε import temperature\n", has: ["🔎 c_to_f(25) = 77.0"], not: ["°F"] }],
+          need: [{ re: /def\s+main\s*\(\s*\)\s*:/, msg: "Φτιάξε τη συνάρτηση def main():" }, { re: /if\s+__name__\s*==\s*["']__main__["']\s*:/, msg: "Κάλεσε τη main μέσα σε if __name__ == \"__main__\":" }] },
+        { id: "m7_11", tag: "Μέτριο", title: "NumPy: τιμές με ΦΠΑ",
+          desc: "Με NumPy και χωρίς for: φτιάξε array από τις τιμές, υπολόγισε τις τιμές με ΦΠΑ 24% στρογγυλεμένες σε 2 δεκαδικά (np.round) και εμφάνισέ τες. Μετά εμφάνισε το σύνολό τους με 2 δεκαδικά.",
+          ex: "[ 3.1  12.4   5.21  8.68]\nΣύνολο: 29.39",
+          starter: "import numpy as np\n\nprices = [2.5, 10, 4.2, 7]\n",
+          hint: 'p = np.array(prices), with_vat = np.round(p * 1.24, 2), print(with_vat) και print(f"Σύνολο: {with_vat.sum():.2f}")',
+          tests: [{ in: [], has: [/\b3\.1\b/, /\b12\.4\b/, "5.21", "8.68", /Σύνολο\D*29\.39/] }],
+          need: [{ re: /np\.array\s*\(/, msg: "Φτιάξε πίνακα NumPy με np.array(prices)." }, { re: /^(?![\s\S]*\bfor\b)/, msg: "Χωρίς for: η πράξη γίνεται σε όλο τον πίνακα μαζί." }] },
+        { id: "m7_12", tag: "Μέτριο", title: "NumPy: βαθμοί τάξης",
+          desc: "Από το array grades εμφάνισε: μέσο όρο (2 δεκαδικά), μέγιστο, πόσοι πέρασαν (≥ 10) και ποιοι βαθμοί πέρασαν. Χωρίς for!",
+          ex: "Μέσος όρος: 13.07\nΜέγιστος: 19.0\nΠέρασαν: 5\n[12. 17. 15. 19. 11.]",
+          starter: "import numpy as np\n\ngrades = np.array([12, 8.5, 17, 9, 15, 19, 11])\n",
+          hint: 'grades.mean() για τον μέσο όρο, grades.max() για τον μέγιστο, (grades >= 10).sum() για το πλήθος, και grades[grades >= 10] για τους βαθμούς.',
+          tests: [{ in: [], has: ["13.07", /Μέγιστος\D*19\b/, /Πέρασαν\D*5\b/, /\[12\.\s+17\.\s+15\.\s+19\.\s+11\.\]/] }],
+          need: [{ re: /grades\s*\[\s*\(?\s*grades\s*>=\s*10\s*\)?\s*\]/, msg: "Κράτα όσους πέρασαν με grades[grades >= 10]" }, { re: /^(?![\s\S]*\bfor\b)/, msg: "Χωρίς for: δούλεψε με όλο τον πίνακα μαζί." }] },
+        { id: "m7_13", tag: "Μέτριο", title: "Γράφημα γραμμής",
+          desc: "Φτιάξε γράφημα γραμμής με τις θερμοκρασίες της εβδομάδας, με κουκκίδα σε κάθε σημείο, τίτλο «Θερμοκρασίες εβδομάδας» και όνομα στον άξονα y «°C». Με ▶ Τρέξε βλέπεις το γράφημα.",
+          ex: "(εμφανίζεται το γράφημα)",
+          starter: 'import matplotlib.pyplot as plt\n\ndays = ["Δευ", "Τρι", "Τετ", "Πεμ", "Παρ", "Σαβ", "Κυρ"]\ntemps = [18, 21, 25, 23, 19, 16, 20]\n',
+          hint: 'plt.plot(days, temps, marker="o"), plt.title("Θερμοκρασίες εβδομάδας"), plt.ylabel("°C"), plt.show()',
+          post: PLOT,
+          tests: [{ in: [], has: ["τίτλος: Θερμοκρασίες εβδομάδας", "y: °C", "📊 γραμμή: 18 21 25 23 19 16 20"] }],
+          need: [{ re: /plt\.plot\s*\(/, msg: "Γράφημα γραμμής: plt.plot(days, temps, …)" }, { re: /marker\s*=/, msg: "Βάλε κουκκίδες με marker=\"o\"." }] },
+        { id: "m7_14", tag: "Μέτριο", title: "Γράφημα ράβδων",
+          desc: "Φτιάξε γράφημα ράβδων με τους βαθμούς, τίτλο «Βαθμοί» και διακεκομμένη κόκκινη γραμμή στο 10 (η βάση). Αποθήκευσέ το και ως grades.png.",
+          ex: "(εμφανίζεται το γράφημα · το grades.png γίνεται)",
+          starter: 'import matplotlib.pyplot as plt\n\nnames = ["Άννα", "Νίκος", "Ελένη", "Μαρία"]\ngrades = [17, 9, 15, 18]\n',
+          hint: 'plt.bar(names, grades), plt.axhline(10, color="red", linestyle="--"), plt.title("Βαθμοί"), plt.savefig("grades.png"), plt.show()',
+          setup: RM("grades.png"), post: PLOT + "import os as _os\nprint('📄 grades.png:', 'υπάρχει' if _os.path.exists('grades.png') else 'δεν φτιάχτηκε')\n",
+          tests: [{ in: [], has: ["τίτλος: Βαθμοί", "📊 ύψη: 17 9 15 18", "📊 γραμμή: 10 10", "grades.png: υπάρχει"] }],
+          need: [{ re: /plt\.bar\s*\(/, msg: "Γράφημα ράβδων: plt.bar(names, grades)" }, { re: /plt\.axhline\s*\(/, msg: "Η γραμμή της βάσης: plt.axhline(10, …)" }, { re: /plt\.savefig\s*\(/, msg: "Αποθήκευσε με plt.savefig(\"grades.png\")." }] },
+        { id: "m7_15", tag: "Δύσκολο", title: "Δυαδική αναζήτηση",
+          desc: "Γράψε την αναδρομική search(lst, x, lo, hi) που επιστρέφει τη θέση του x στην ταξινομημένη λίστα, ή −1 αν δεν υπάρχει. Διάβασε έναν αριθμό και εμφάνισε «Θέση: N» ή «Δεν βρέθηκε».",
+          ex: "Ψάχνω: 30\nΘέση: 5",
+          starter: 'def search(lst, x, lo, hi):\n    \n\nnums = [3, 8, 12, 17, 21, 30, 42]\nx = int(input("Ψάχνω: "))\n',
+          hint: "Αν lo > hi: return -1. mid = (lo + hi) // 2. Αν lst[mid] == x: return mid. Αν x < lst[mid]: return search(lst, x, lo, mid - 1), αλλιώς return search(lst, x, mid + 1, hi). Κλήση: pos = search(nums, x, 0, len(nums) - 1)",
+          post: "_big = list(range(0, 2000, 2))\nprint('🔎', search(_big, 1234, 0, 999), search(_big, 7, 0, 999))\n",
+          tests: [{ in: ["30"], has: [/Θέση\D*5\b/, "🔎 617 -1"] }, { in: ["3"], has: [/Θέση\D*0\b/] }, { in: ["42"], has: [/Θέση\D*6\b/] }, { in: ["13"], has: ["Δεν βρέθηκε"], not: ["Θέση"] }],
+          need: [NOLOOP, { re: /return\s+search\s*\(/, msg: "Η search καλεί τον εαυτό της: return search(lst, x, …)" }, { re: /^(?![\s\S]*\.index\s*\()/, msg: "Χωρίς .index(): βρες τη θέση με αναδρομή." }] },
+        { id: "m7_16", tag: "Δύσκολο", title: "Κατάλογος σε υποπρογράμματα",
+          desc: "Ο κατάλογος του Μαθήματος 5, σε υποπρογράμματα. Συμπλήρωσε την load_phone(filename), που επιστρέφει λεξικό με τις επαφές (κενό αν λείπει το αρχείο), και τη save_phone(filename, phone), που τις γράφει σε CSV. Η main() είναι έτοιμη.",
+          ex: "1.Προσθήκη 2.Όλοι 0.Έξοδος: 1\nΌνομα: Νίκος\nΤηλέφωνο: 6972222222\n1.Προσθήκη 2.Όλοι 0.Έξοδος: 0\nΑποθηκεύτηκαν 1 επαφές.",
+          starter: 'import csv\n\ndef load_phone(filename):\n    # επέστρεψε λεξικό με τις επαφές (κενό αν δεν υπάρχει το αρχείο)\n    pass\n\ndef save_phone(filename, phone):\n    # γράψε τις επαφές στο CSV\n    pass\n\ndef main():\n    phone = load_phone("phone.csv")\n    while True:\n        choice = input("\\n1.Προσθήκη 2.Όλοι 0.Έξοδος: ")\n        if choice == "1":\n            name = input("Όνομα: ")\n            phone[name] = input("Τηλέφωνο: ")\n        elif choice == "2":\n            for name in sorted(phone):\n                print(f"{name}: {phone[name]}")\n        elif choice == "0":\n            save_phone("phone.csv", phone)\n            print("Αποθηκεύτηκαν", len(phone), "επαφές.")\n            break\n\nif __name__ == "__main__":\n    main()\n',
+          hint: 'load_phone: phone = {}, μετά try: with open(filename, newline="", encoding="utf-8") as f: for row in csv.reader(f): phone[row[0]] = row[1] — except FileNotFoundError: pass — και στο τέλος return phone. save_phone: with open(filename, "w", newline="", encoding="utf-8") as f: csv.writer(f).writerows(phone.items())',
+          post: "print('🔎', load_phone('phone.csv'), load_phone('δεν_υπάρχει.csv'))\n",
+          tests: [{ in: ["2", "1", "Νίκος", "6972222222", "0"], setup: WRITE("phone.csv", "Άννα,6971111111\r\n"),
+                    has: [/Άννα:\s*6971111111/, /Αποθηκεύτηκαν\D*2/, "🔎 {'Άννα': '6971111111', 'Νίκος': '6972222222'} {}"] },
+                  { in: ["2", "1", "Ελένη", "6973333333", "0"], setup: RM("phone.csv"), has: [/Αποθηκεύτηκαν\D*1/, "🔎 {'Ελένη': '6973333333'} {}"] }],
+          need: [{ re: /except\s+FileNotFoundError/, msg: "Την πρώτη φορά το αρχείο λείπει: πιάσ' το με except FileNotFoundError:" }, { re: /return\s+\w+/, msg: "Η load_phone πρέπει να επιστρέφει (return) το λεξικό." }] },
+        { id: "m7_17", tag: "Ο στόχος", title: "Γράφημα βαθμών από CSV",
+          desc: "Τρία υποπρογράμματα και μια main(): η load_grades(filename) επιστρέφει δύο λίστες (ονόματα, βαθμοί) από το grades.csv, η summary(names, grades) εμφανίζει μέσο όρο (2 δεκαδικά) και «Πέρασαν: N από M», και η draw_chart(names, grades) φτιάχνει γράφημα ράβδων με τίτλο «Βαθμολογίες τμήματος» και γραμμή στο 10.",
+          ex: "Μέσος όρος: 12.60\nΠέρασαν: 3 από 5\n(και το γράφημα)",
+          starter: 'import csv\nimport matplotlib.pyplot as plt\n\ndef load_grades(filename):\n    names, grades = [], []\n    # διάβασε το CSV (προσπέρασε την επικεφαλίδα)\n    \n    return names, grades\n\ndef summary(names, grades):\n    \n\ndef draw_chart(names, grades):\n    \n\ndef main():\n    names, grades = load_grades("grades.csv")\n    summary(names, grades)\n    draw_chart(names, grades)\n\nif __name__ == "__main__":\n    main()\n',
+          hint: 'load_grades: with open(filename, newline="", encoding="utf-8") as f: reader = csv.reader(f), next(reader), και για κάθε row: names.append(row[0]), grades.append(float(row[1])). draw_chart: plt.bar(names, grades), plt.axhline(10, color="red", linestyle="--"), plt.title("Βαθμολογίες τμήματος"), plt.show()',
+          setup: WRITE("grades.csv", "name,grade\r\nΆννα,17\r\nΝίκος,9\r\nΜαρία,18.5\r\nΓιώργος,11\r\nΕλένη,7.5\r\n"),
+          post: PLOT + "print('🔎', load_grades('grades.csv'))\n",
+          tests: [{ in: [], has: ["12.60", /Πέρασαν\D*3\s*από\s*5/, "τίτλος: Βαθμολογίες τμήματος", "📊 ύψη: 17 9 18.5 11 7.5", "📊 γραμμή: 10 10", "🔎 (['Άννα', 'Νίκος', 'Μαρία', 'Γιώργος', 'Ελένη'], [17.0, 9.0, 18.5, 11.0, 7.5])"] },
+                  { in: [], setup: WRITE("grades.csv", "name,grade\r\nΚώστας,20\r\nΛένα,5\r\n"), has: ["12.50", /Πέρασαν\D*1\s*από\s*2/, "📊 ύψη: 20 5"] }],
+          need: [{ re: /def\s+load_grades\s*\(/, msg: "Γράψε την def load_grades(filename):" }, { re: /def\s+summary\s*\(/, msg: "Γράψε την def summary(names, grades):" }, { re: /def\s+draw_chart\s*\(/, msg: "Γράψε την def draw_chart(names, grades):" }, { re: /plt\.bar\s*\(/, msg: "Γράφημα ράβδων: plt.bar(names, grades)" }] },
+        { id: "m7_18", tag: "Για το σπίτι", title: "Πύργοι του Ανόι",
+          desc: "Μετακίνησε n δίσκους από τον στύλο Α στον Γ, με βοηθό τον Β: ένας δίσκος τη φορά, ποτέ μεγάλος πάνω σε μικρό. Αναδρομικά: τους n − 1 από πάνω στον βοηθό, τον μεγάλο στον προορισμό, και τους n − 1 πάνω του. Εμφάνισε κάθε κίνηση «Α → Γ» και στο τέλος «Κινήσεις: N».",
+          ex: "Δίσκοι: 2\nΑ → Β\nΑ → Γ\nΒ → Γ\nΚινήσεις: 3",
+          starter: 'moves = 0\n\ndef hanoi(n, src, dst, via):\n    global moves\n    if n == 0:\n        return\n    # 1. οι n - 1 από src στο via (βοηθός το dst)\n    # 2. ο μεγάλος: από src στο dst (εμφάνισε την κίνηση, moves + 1)\n    # 3. οι n - 1 από via στο dst (βοηθός το src)\n\nn = int(input("Δίσκοι: "))\nhanoi(n, "Α", "Γ", "Β")\nprint("Κινήσεις:", moves)\n',
+          hint: 'hanoi(n - 1, src, via, dst), μετά print(src, "→", dst) και moves = moves + 1, μετά hanoi(n - 1, via, dst, src).',
+          tests: [{ in: ["2"], has: [/Α → Β\s+Α → Γ\s+Β → Γ/, /Κινήσεις\D*3\b/] }, { in: ["3"], has: [/^Α → Γ/, /Κινήσεις\D*7\b/] }, { in: ["10"], has: [/Κινήσεις\D*1023\b/] }],
+          need: [NOLOOP, { re: /hanoi\s*\(\s*n\s*-\s*1/, msg: "Η hanoi καλεί τον εαυτό της με n - 1 δίσκους." }] }
+      ]
     }
   ];
 
   // ======================= Python runner =======================
   var RUNNER = [
-    "import sys, traceback",
+    "import sys, traceback, os, warnings",
+    "os.environ['MPLBACKEND'] = 'Agg'      # τα γραφήματα γίνονται εικόνες κάτω από τον κώδικα",
+    "warnings.filterwarnings('ignore', message='.*(non-interactive|cannot be shown).*')",
     "class _Limit(Exception): pass",
+    "def __figs():",
+    "    plt = sys.modules.get('matplotlib.pyplot')",
+    "    if plt is None: return []",
+    "    import io, base64",
+    "    imgs = []",
+    "    for n in plt.get_fignums():",
+    "        b = io.BytesIO()",
+    "        plt.figure(n).savefig(b, format='png', dpi=80)",
+    "        imgs.append(base64.b64encode(b.getvalue()).decode())",
+    "    plt.close('all')",
+    "    return imgs",
     "def __run(code, inputs, interactive, setup, post='', limit=1000000):",
+    "    import random as _r",
+    "    saved = {k: getattr(_r, k) for k in ('randint', 'choice', 'random', 'shuffle', 'randrange')}",
     "    shown = []",
     "    printed = []",
     "    feed = [str(x) for x in inputs]",
@@ -614,7 +936,12 @@
     "        err = {'type': type(e).__name__, 'msg': str(e), 'line': tb[-1].lineno if tb else 0}",
     "    finally:",
     "        sys.stdout, sys.stderr = old",
-    "    return {'shown': ''.join(shown), 'out': ''.join(printed), 'err': err}"
+    "        for k, v in saved.items(): setattr(_r, k, v)   # τα τεστ «πειράζουν» το random· το επαναφέρουμε",
+    "    try:",
+    "        imgs = __figs()",
+    "    except Exception:",
+    "        imgs = []",
+    "    return {'shown': ''.join(shown), 'out': ''.join(printed), 'err': err, 'imgs': imgs}"
   ].join("\n");
 
   var PY = null, loading = null, pyState = "idle", api = null, root = null;
@@ -668,6 +995,7 @@
       if (/invalid character/.test(m)) return "Υπάρχει «περίεργος» χαρακτήρας, π.χ. ελληνικά εισαγωγικά « » ή “ ” αντί για \" \".";
       return "Λάθος σύνταξης. Κοίτα τη γραμμή που δείχνει (και την προηγούμενη): λείπει : , παρένθεση, εισαγωγικά; Δεν υπάρχουν ++ και ; στην Python.";
     }
+    if (t === "UnboundLocalError") return "Αλλάζεις μέσα στη συνάρτηση μια μεταβλητή που έχει φτιαχτεί έξω. Γράψε πρώτα global όνομα μέσα στη συνάρτηση, ή (καλύτερα) πέρασέ τη ως παράμετρο και δώσε πίσω το αποτέλεσμα με return.";
     if (t === "NameError") {
       var nm = (m.match(/name '([^']+)'/) || [])[1] || "";
       if (/^Print|^Input|^PRINT/.test(nm)) return "Η Python ξεχωρίζει κεφαλαία-πεζά: γράψε " + nm.toLowerCase() + " με μικρά.";
@@ -682,6 +1010,9 @@
       if (/write\(\) argument must be str/.test(m)) return "Το write() θέλει κείμενο. Γράψε f.write(str(x) + \"\\n\") ή απλώς print(x, file=f).";
       if (/'tuple' object does not support item assignment/.test(m)) return "Οι πλειάδες (tuple) δεν αλλάζουν! Αν θες να αλλάζεις στοιχεία, χρησιμοποίησε λίστα [ ].";
       if (/'NoneType'/.test(m)) return "Κάτι είναι None. Συχνό λάθος: το lst.sort() αλλάζει τη λίστα και επιστρέφει None. Μην γράφεις x = lst.sort().";
+      if (/missing \d+ required positional argument/.test(m)) return "Κάλεσες τη συνάρτηση με λιγότερα ορίσματα απ' όσες παραμέτρους έχει το def της. Δώσε μια τιμή για κάθε παράμετρο (εκτός από όσες έχουν προεπιλογή).";
+      if (/takes \d+ positional arguments? but \d+ (was|were) given/.test(m)) return "Κάλεσες τη συνάρτηση με περισσότερα ορίσματα απ' όσες παραμέτρους έχει το def της.";
+      if (/unexpected keyword argument/.test(m)) return "Έδωσες ονομαστικό όρισμα (όνομα=τιμή) με όνομα που δεν υπάρχει στις παραμέτρους της συνάρτησης. Έλεγξε την ορθογραφία.";
       if (/not callable/.test(m)) return "Προσπαθείς να «καλέσεις» κάτι που δεν είναι συνάρτηση. Μήπως έδωσες σε μεταβλητή όνομα όπως sum, max, list, print;";
       return "Λάθος τύπου: η πράξη δεν γίνεται με αυτά τα είδη τιμών.";
     }
@@ -703,7 +1034,8 @@
     if (t === "FileNotFoundError") return "Το αρχείο δεν υπάρχει. Έλεγξε το όνομα, ή «πιάσε» την περίπτωση με try / except FileNotFoundError.";
     if (t === "UnsupportedOperation") return /not readable/.test(m) ? "Άνοιξες το αρχείο για γράψιμο (\"w\" ή \"a\") και προσπαθείς να διαβάσεις. Για ανάγνωση: open(όνομα, encoding=\"utf-8\")." : "Άνοιξες το αρχείο για ανάγνωση και προσπαθείς να γράψεις. Για γράψιμο: \"w\" (σβήνει) ή \"a\" (προσθέτει).";
     if (t === "UnpicklingError" || t === "UnicodeDecodeError") return "Το αρχείο δεν διαβάζεται έτσι. Για pickle θέλει \"rb\" / \"wb\" (δυαδικό), για κείμενο encoding=\"utf-8\".";
-    if (t === "RecursionError") return "Η συνάρτηση καλεί τον εαυτό της ξανά και ξανά χωρίς τέλος.";
+    if (t === "RecursionError") return "Η συνάρτηση καλεί τον εαυτό της ξανά και ξανά χωρίς τέλος. Έλεγξε ότι υπάρχει βάση (π.χ. if n == 0: return …) και ότι κάθε κλήση πλησιάζει τη βάση (π.χ. n - 1, όχι n + 1).";
+    if (t === "ModuleNotFoundError" || t === "ImportError") return "Δεν βρέθηκε το module ή αυτό που ζητάς μέσα του. Έλεγξε την ορθογραφία: import math, import numpy as np, import matplotlib.pyplot as plt. Στον υπολογιστή σου, ό,τι δεν έρχεται με την Python θέλει πρώτα pip install.";
     return "";
   }
 
@@ -747,7 +1079,7 @@
 
   // ======================= syntax highlighting =======================
   var KW = /^(False|None|True|and|as|assert|break|class|continue|def|del|elif|else|except|finally|for|from|global|if|import|in|is|lambda|nonlocal|not|or|pass|raise|return|try|while|with|yield)$/;
-  var BI = /^(print|input|int|float|str|len|range|sum|max|min|sorted|list|tuple|round|abs|type|enumerate|zip|bool|dict|set|reversed|any|all|open|isinstance|next|repr)$/;
+  var BI = /^(print|input|int|float|str|len|range|sum|max|min|sorted|list|tuple|round|abs|type|enumerate|zip|bool|dict|set|reversed|any|all|open|isinstance|next|repr|map|filter|help)$/;
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function hl(code) {
     var re = /(#[^\n]*)|([rbfuRBFU]{0,2}(?:"""[\s\S]*?(?:"""|$)|'''[\s\S]*?(?:'''|$)|"(?:\\.|[^"\\\n])*"?|'(?:\\.|[^'\\\n])*'?))|(\b\d+(?:\.\d+)?\b)|([A-Za-z_Ͱ-Ͽἀ-῿][\wͰ-Ͽἀ-῿]*)/g;
@@ -857,7 +1189,8 @@
   // ---------- πού βρίσκεται η θεωρία κάθε άσκησης στις διαφάνειες ----------
   // PDF κάθε μαθήματος στο site · REFS: άσκηση → διαφάνειες (= σελίδες του PDF)
   var PDFS = { m1: "files/glyfada/python-01-gnorimia.pdf", m2: "files/glyfada/python-02-if-while-for.pdf", m3: "files/glyfada/python-03-listes.pdf",
-    m4: "files/glyfada/python-04-syn-lex.pdf", m5: "files/glyfada/python-05-arxeia.pdf" };
+    m4: "files/glyfada/python-04-syn-lex.pdf", m5: "files/glyfada/python-05-arxeia.pdf", m6: "files/glyfada/python-06-synartiseis.pdf",
+    m7: "files/glyfada/python-07-anadromi.pdf" };
   var REFS = {
     m1a: [5, 8], m1b: [16, 18], m1c: [12, 13], m1d: [17, 18, 21], m1e: [22], m1f: [23, 24], m1g: [13], m1h: [25],
     m2a: [5], m2b: [6], m2c: [10], m2d: [15, 22], m2e: [17], m2f: [19, 20, 23], m2g: [13, 24], m2h: [25], m2i: [13, 14],
@@ -866,7 +1199,11 @@
     m4_01: [5], m4_02: [6], m4_03: [7], m4_04: [9], m4_05: [10], m4_06: [11], m4_07: [12], m4_08: [14], m4_09: [15],
     m4_10: [16], m4_11: [16], m4_12: [17], m4_13: [18], m4_14: [6, 21], m4_15: [16, 22], m4_16: [23], m4_17: [16, 17],
     m5_01: [5], m5_02: [6], m5_03: [7], m5_04: [8], m5_05: [10], m5_06: [11], m5_07: [12], m5_08: [13], m5_09: [15],
-    m5_10: [16], m5_11: [17], m5_12: [18], m5_13: [20], m5_14: [17, 22], m5_15: [13, 18, 23], m5_16: [18, 24], m5_17: [6, 8]
+    m5_10: [16], m5_11: [17], m5_12: [18], m5_13: [20], m5_14: [17, 22], m5_15: [13, 18, 23], m5_16: [18, 24], m5_17: [6, 8],
+    m6_01: [5], m6_02: [6], m6_03: [7], m6_04: [8], m6_05: [10], m6_06: [11], m6_07: [12], m6_08: [13], m6_09: [15],
+    m6_10: [15], m6_11: [16], m6_12: [17], m6_13: [18], m6_14: [19, 21], m6_15: [4, 22], m6_16: [18, 23], m6_17: [7, 10],
+    m7_01: [5], m7_02: [6], m7_03: [7], m7_04: [9], m7_05: [11], m7_06: [11], m7_07: [12], m7_08: [12], m7_09: [13],
+    m7_10: [14], m7_11: [16], m7_12: [16], m7_13: [17], m7_14: [18], m7_15: [10], m7_16: [20, 22], m7_17: [20, 23], m7_18: [5, 6, 7]
   };
   function refHTML(l, e) {
     var pages = REFS[e.id], pdf = PDFS[l.id];
@@ -979,7 +1316,8 @@
     var html = "";
     if (r.shown.length > 20000) r.shown = r.shown.slice(0, 20000) + "\n… (η έξοδος κόπηκε, ήταν πολύ μεγάλη)";
     if (r.shown) html += '<div class="pyo">' + esc(r.shown).replace(/\u0000([^\u0001]*)\u0001/g, '<b class="pin">$1</b>') + "</div>";
-    if (!r.shown && !r.err) html += '<div class="dim">(το πρόγραμμα έτρεξε χωρίς να εμφανίσει τίποτα — μήπως ξέχασες print();)</div>';
+    (r.imgs || []).forEach(function (b64) { html += '<img class="py-img" alt="Γράφημα" src="data:image/png;base64,' + b64 + '">'; });
+    if (!r.shown && !r.err && !(r.imgs || []).length) html += '<div class="dim">(το πρόγραμμα έτρεξε χωρίς να εμφανίσει τίποτα — μήπως ξέχασες print();)</div>';
     if (r.err) {
       html += '<div class="bad">❌ ' + esc(r.err.type === "Loop" ? "Ατέρμων βρόχος" : r.err.type) + (r.err.line ? " στη γραμμή " + r.err.line : "") + (r.err.msg && r.err.type !== "Loop" ? ": " + esc(r.err.msg) : "") + "</div>";
       var ex = explain(r.err);
@@ -989,12 +1327,18 @@
     root.out.innerHTML = html;
   }
 
-  function withPy(label, fn) {
+  // NumPy / Matplotlib δεν είναι μέσα στην Python του browser: φορτώνουν την πρώτη φορά που τα κάνει import ο κώδικας
+  var PKGS = /^\s*(import|from)\s+(numpy|matplotlib)\b/m;
+  function withPy(label, fn, code) {
     root.out.innerHTML = '<div class="dim">' + label + "</div>";
     var btns = root.el.querySelectorAll(".py-tools .btn");
     Array.prototype.forEach.call(btns, function (b) { b.disabled = true; });
     var done = function () { Array.prototype.forEach.call(btns, function (b) { b.disabled = false; }); };
-    loadPy().then(function () {
+    loadPy().then(function (py) {
+      if (!code || !PKGS.test(code)) return;
+      root.out.innerHTML = '<div class="dim">⏳ Φορτώνει το NumPy / Matplotlib… (μόνο την πρώτη φορά, λίγα δευτερόλεπτα)</div>';
+      return py.loadPackagesFromImports(code);
+    }).then(function () {
       setTimeout(function () { try { fn(); } finally { done(); } }, 30);
     }, function () {
       done();
@@ -1008,7 +1352,7 @@
     if (inputs.length && inputs[inputs.length - 1] === "" && root.inputs.value.slice(-1) === "\n") inputs.pop();
     withPy(PY ? "⏳ Τρέχει…" : "⏳ Φορτώνει η Python… (μόνο την πρώτη φορά, λίγα δευτερόλεπτα)", function () {
       showRun(runPy(code, inputs, true, curEx().setup));
-    });
+    }, code);
   }
 
   function doCheck() {
@@ -1031,7 +1375,7 @@
           if (tab) tab.textContent = l.ex.filter(function (x) { return api.isDone(key(x)); }).length + "/" + l.ex.length;
         }
       }
-    });
+    }, code);
   }
   function loadExKeepCode() {
     var out = root.out.innerHTML, code = root.ta.value;
