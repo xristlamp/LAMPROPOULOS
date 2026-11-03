@@ -259,7 +259,7 @@
           ex: "5.0",
           starter: "point = (3, 4)\n",
           hint: "x, y = point και μετά print((x ** 2 + y ** 2) ** 0.5)",
-          tests: [{ in: [], has: ["5.0"] }],
+          tests: [{ in: [], has: [{ n: ["5", "5.0"] }] }],
           need: [{ re: /\w+\s*,\s*\w+\s*=\s*point\b/, msg: "Μοίρασε την πλειάδα: x, y = point" }] },
         { id: "m3_14", tag: "Μέτριο", title: "Πίνακας: πόντοι ομάδων",
           desc: "Κάθε γραμμή του πίνακα points είναι μία ομάδα, κάθε στήλη ένας αγώνας. Εμφάνισε τους πόντους της 2ης ομάδας στον 3ο αγώνα, και μετά το σύνολο κάθε ομάδας.",
@@ -1044,10 +1044,10 @@
   function numRe(x) { return new RegExp("(^|[^\\d.])" + x.replace(/[.\-]/g, "\\$&") + "(?!\\d|\\.\\d)"); }
   function matches(out, h) {
     if (h instanceof RegExp) return h.test(out);
-    if (h && h.n != null) return numRe(h.n).test(out);
+    if (h && h.n != null) return [].concat(h.n).some(function (x) { return numRe(x).test(out); });   // n: "5" ή n: ["5", "5.0"] (ένα από αυτά)
     return norm(out).indexOf(norm(h)) >= 0;
   }
-  function label(h) { return h instanceof RegExp ? h.source.replace(/\\s\*/g, " ").replace(/\\b|\(\^\|\\s\)|\(\?!\\d\)|\^|\$/g, "").replace(/\\D\*/g, "…").replace(/\\/g, "") : h && h.n != null ? h.n : h; }
+  function label(h) { return h instanceof RegExp ? h.source.replace(/\\s\*/g, " ").replace(/\\b|\(\^\|\\s\)|\(\?!\\d\)|\^|\$/g, "").replace(/\\D\*/g, "…").replace(/\\/g, "") : h && h.n != null ? [].concat(h.n).join(" ή ") : h; }
 
   function check(ex, code) {
     var res = { ok: true, lines: [] };

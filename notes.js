@@ -128,6 +128,15 @@ window.SITE = {
           pptx: "files/markopoulo/sls-03-fcfs-sjf.pptx",
           visible: true,
         },
+        {
+          title: "Εργαστήριο 4 · Χρονοδρομολόγηση ΙΙ: Round Robin, SRTF, Priority",
+          kind: "Θεωρία + ασκήσεις",
+          date: "2026-11-03",
+          desc: "Αλγόριθμοι που διακόπτουν, σε 10 μικρά βήματα: κβάντο και καυτή πατάτα, αναμονή = τέλος − άφιξη − εκτέλεση, SRTF, Priority, λιμοκτονία και γήρανση, nice/renice στο Linux και start /low στα Windows. Οι 16 ασκήσεις του εργαστηρίου, η καθεμία με τη λύση της βήμα-βήμα.",
+          pdf: "files/markopoulo/sls-04-rr-srtf-priority.pdf",
+          pptx: "files/markopoulo/sls-04-rr-srtf-priority.pptx",
+          visible: true,
+        },
       ],
     },
     {
