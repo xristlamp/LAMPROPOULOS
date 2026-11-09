@@ -206,13 +206,16 @@
 
   // ================= WINDOWS =================
   var WIN_HELP = [
+    ["ATTRIB", "Δείχνει ή αλλάζει χαρακτηριστικά αρχείου (+R μόνο ανάγνωση, +H κρυφό, - για να βγει)", "attrib  ·  attrib +h mystiko.txt  ·  attrib -h -r mystiko.txt"],
+    ["CALL", "Τρέχει ένα αρχείο δέσμης (.bat)", "call site.bat  (ή σκέτο: site)"],
     ["CD", "Δείχνει ή αλλάζει τον τρέχοντα φάκελο", "cd Desktop  ·  cd ..  ·  cd \\"],
     ["CLS", "Καθαρίζει την οθόνη", "cls"],
     ["COLOR", "Αλλάζει χρώματα (φόντο + γράμματα)", "color 0a"],
     ["COPY", "Αντιγράφει αρχείο", "copy ergasia.txt antigrafo.txt"],
     ["DATE", "Δείχνει την ημερομηνία", "date /t"],
     ["DEL", "Διαγράφει αρχείο", "del hello.txt"],
-    ["DIR", "Δείχνει τα αρχεία και τους φακέλους", "dir  ·  dir /b"],
+    ["DIR", "Δείχνει τα αρχεία και τους φακέλους (/A και τα κρυφά, /B μόνο ονόματα)", "dir  ·  dir *.txt  ·  dir /a"],
+    ["DRIVERQUERY", "Οι οδηγοί συσκευών (drivers) που είναι εγκατεστημένοι", "driverquery"],
     ["ECHO", "Εμφανίζει μήνυμα (με > το γράφει σε αρχείο)", "echo Γεια > hello.txt"],
     ["FIND", "Ψάχνει γραμμές με ένα κείμενο (σε αρχείο ή μετά από |)", 'find "P2" procs.txt  ·  tasklist | find "chrome"'],
     ["HOSTNAME","Το όνομα του υπολογιστή", "hostname"],
@@ -220,8 +223,11 @@
     ["MKDIR", "Δημιουργεί φάκελο (ή MD)", "mkdir SAEK"],
     ["MOVE", "Μετακινεί αρχείο", "move hello.txt ..\\Documents"],
     ["PING", "Ελέγχει αν απαντά ένας υπολογιστής στο δίκτυο", "ping google.com"],
-    ["REN", "Μετονομάζει αρχείο", "ren hello.txt geia.txt"],
+    ["POWERSHELL", "Το νεότερο κέλυφος των Windows (cmdlets)", "powershell"],
+    ["REN", "Μετονομάζει αρχείο (με μάσκα αλλάζει καταλήξεις)", "ren hello.txt geia.txt  ·  ren *.txt *.bak"],
     ["RMDIR", "Διαγράφει φάκελο (ή RD, /S με τα περιεχόμενα)", "rd SAEK"],
+    ["ROBOCOPY", "Αντιγράφει φακέλους και κρατά σύνοψη (αντίγραφα ασφαλείας)", "robocopy Pictures Backup\\Pictures /e"],
+    ["SFC", "Ελέγχει τα αρχεία συστήματος (θέλει διαχειριστή)", "sfc /scannow"],
     ["SORT", "Ταξινομεί τις γραμμές αρχείου (/R αντίστροφα, /+N από τον χαρακτήρα N)", "sort procs.txt"],
     ["START", "Ξεκινά πρόγραμμα (/LOW, /HIGH κ.λπ. για προτεραιότητα)", "start notepad  ·  start /low notepad"],
     ["SYSTEMINFO", "Πληροφορίες για το ΛΣ και το υλικό", "systeminfo"],
@@ -232,7 +238,8 @@
     ["TYPE", "Δείχνει το περιεχόμενο αρχείου κειμένου", "type ergasia.txt"],
     ["VER", "Η έκδοση των Windows", "ver"],
     ["WHOAMI", "Ποιος χρήστης είσαι", "whoami"],
-    ["WMIC", "Πληροφορίες και προτεραιότητα διεργασιών", 'wmic process where name="notepad.exe" get name,processid,priority']
+    ["WMIC", "Πληροφορίες και προτεραιότητα διεργασιών", 'wmic process where name="notepad.exe" get name,processid,priority'],
+    ["XCOPY", "Αντιγράφει αρχεία και φακέλους (/E με τους υποφακέλους, /I ο προορισμός είναι φάκελος)", "xcopy Documents Backup\\Documents /e /i"]
   ];
   // βασική προτεραιότητα στα Windows: start /low ... /realtime  και  wmic ... call setpriority
   var WIN_PRIO = { low: 4, idle: 4, belownormal: 6, normal: 8, abovenormal: 10, high: 13, realtime: 24 };
@@ -250,15 +257,19 @@
     return out;
   }
 
-  function winDirRows(s, r, bare) {
+  function hidden(n) { return !!(n.a && n.a.h); }
+  // mask: μάσκα (*.txt, test?.tmp) · all: και τα κρυφά (dir /a)
+  function winDirRows(s, r, bare, mask, all) {
     var out = [];
     var isDir = r.n.t === "d";
     var names = isDir ? Object.keys(r.n.c).sort(function (a, b) { return a.toLowerCase() < b.toLowerCase() ? -1 : 1; }) : [r.p[r.p.length - 1]];
     var holder = isDir ? r.n : at(s, r.p.slice(0, -1)).n;
+    names = names.filter(function (k) { return (!mask || mask.test(k)) && (all || !hidden(holder.c[k])); });
+    if (mask && !names.length) return ["File Not Found"];
     if (bare) return names;
     out.push(" Volume in drive C is Windows", " Volume Serial Number is 4E2A-91B7", "", " Directory of " + pathStr(s, isDir ? r.p : r.p.slice(0, -1)), "");
     var nf = 0, nd = 0, tot = 0;
-    if (isDir && r.p.length) { out.push(wdate(r.n.m) + "    <DIR>          ."); out.push(wdate(r.n.m) + "    <DIR>          .."); nd += 2; }
+    if (isDir && r.p.length && !mask) { out.push(wdate(r.n.m) + "    <DIR>          ."); out.push(wdate(r.n.m) + "    <DIR>          .."); nd += 2; }
     names.forEach(function (k) {
       var n = holder.c[k];
       if (n.t === "d") { nd++; out.push(wdate(n.m) + "    <DIR>          " + k); }
@@ -404,7 +415,7 @@
       var d = NOW();
       return has(a, "/t") ? [two(d.getHours()) + ":" + two(d.getMinutes())] : ["The current time is: " + hms(d) + ",00", T("Γράψε time /t για να δεις μόνο την ώρα.")];
     },
-    echo: function (s, a, seg) { var t = seg.replace(/^echo\.?\s?/i, ""); return [/^echo\.$/i.test(seg.trim()) ? "" : t === "" ? "ECHO is on." : t]; },
+    echo: function (s, a, seg) { var t = seg.replace(/^echo\.?\s?/i, "").replace(/\^(.)/g, "$1"); return [/^echo\.$/i.test(seg.trim()) ? "" : t === "" ? "ECHO is on." : t]; },
     color: function (s, a) {
       var c = (a[0] || "").toLowerCase();
       if (!c) { s.color = null; return []; }
@@ -416,10 +427,13 @@
     },
     title: function () { return []; },
     dir: function (s, a) {
-      var p = a.filter(function (x) { return x[0] !== "/"; })[0];
-      var r = at(s, p ? resolve(s, p) : s.cwd);
+      var p = a.filter(function (x) { return x[0] !== "/"; })[0], arr = p ? resolve(s, p) : s.cwd.slice(), mask = null;
+      if (/[*?]/.test(arr[arr.length - 1] || "")) { mask = glob(arr.pop()); s.flags.dirMask = 1; }
+      var all = a.some(function (x) { return /^\/a/i.test(x); });
+      if (all) s.flags.dirAll = 1;
+      var r = at(s, arr);
       if (!r) return ["File Not Found"];
-      return winDirRows(s, r, has(a, "/b"));
+      return winDirRows(s, r, has(a, "/b"), mask, all);
     },
     cd: function (s, a) {
       var p = a.filter(function (x) { return x.toLowerCase() !== "/d"; }).join(" ");
@@ -450,13 +464,14 @@
         if (r.n.t !== "d") { out.push(E("The directory name is invalid.")); return; }
         if (!canWrite(s, r.p) || r.p.length <= s.home.length) { out.push(E("Access is denied.")); return; }
         if (isInside(s.cwd, r.p)) { out.push(E("The process cannot access the file because it is being used by another process."), T("Βγες πρώτα από τον φάκελο με cd ..")); return; }
-        if (Object.keys(r.n.c).length && !sub) { out.push(E("The directory is not empty."), T("Για να σβήσεις και τα περιεχόμενα: rd /s " + unq(p))); return; }
+        if (Object.keys(r.n.c).length && !sub) { s.flags.rdNotEmpty = 1; out.push(E("The directory is not empty."), T("Για να σβήσεις και τα περιεχόμενα: rd /s " + unq(p))); return; }
         delete parentOf(s, r.p).n.c[r.p[r.p.length - 1]];
       });
       return out;
     },
     type: function (s, a) {
       if (!a[0]) return [E("The syntax of the command is incorrect.")];
+      if (/^nul$/i.test(unq(a[0]))) return [];   // type nul > κενό.txt
       var r = at(s, resolve(s, a[0]));
       if (!r) return [E("The system cannot find the file specified.")];
       if (r.n.t === "d") return [E("Access is denied.")];
@@ -469,15 +484,31 @@
       ps.forEach(function (p) {
         var arr = resolve(s, p), name = arr.pop(), par = at(s, arr);
         if (!par || par.n.t !== "d") { out.push(E("The system cannot find the path specified.")); return; }
-        var re = glob(name), keys = Object.keys(par.n.c).filter(function (k) { return re.test(k); });
-        if (!keys.length) { out.push(E("Could Not Find " + pathStr(s, par.p.concat(name)))); return; }
+        var re = glob(name), all = Object.keys(par.n.c).filter(function (k) { return re.test(k); });
+        var keys = all.filter(function (k) { return !hidden(par.n.c[k]); });
+        if (!keys.length) { out.push(E("Could Not Find " + pathStr(s, par.p.concat(name)))); if (all.length) { s.flags.hidDel = 1; out.push(T("Το αρχείο είναι κρυφό (+H). Το del δεν βλέπει τα κρυφά: βγάλε πρώτα το H με attrib -h " + name)); } return; }
         if (!canWrite(s, par.p)) { s.flags.denied = 1; out.push(E("Access is denied."), T("Αρχεία του συστήματος δεν σβήνονται από απλό χρήστη: το ΛΣ προστατεύει τον εαυτό του.")); return; }
-        keys.forEach(function (k) { if (par.n.c[k].t === "d") out.push(T(k + " είναι φάκελος. Για φακέλους χρησιμοποίησε: rd " + k)); else delete par.n.c[k]; });
+        keys.forEach(function (k) {
+          var n = par.n.c[k];
+          if (n.t === "d") out.push(T(k + " είναι φάκελος. Για φακέλους χρησιμοποίησε: rd " + k));
+          else if (n.a && n.a.r) { s.flags.roDenied = 1; out.push(E(pathStr(s, par.p.concat(k))), E("Access is denied."), T("Είναι μόνο για ανάγνωση (+R). Βγάλε το R με attrib -r " + k + " και ξαναδοκίμασε.")); }
+          else delete par.n.c[k];
+        });
       });
       return out;
     },
     ren: function (s, a) {
       if (a.length < 2) return [E("The syntax of the command is incorrect.")];
+      if (/[*?]/.test(a[0])) {   // ren *.txt *.bak: αλλάζει την κατάληξη σε όλα
+        var arr = resolve(s, a[0]), m = arr.pop(), pd = at(s, arr), ext = /^\*(\.\w+)$/.exec(unq(a[1]));
+        if (!pd || !ext) return [E("The syntax of the command is incorrect."), T("Με μάσκα, το νέο όνομα γράφεται π.χ. *.bak: ren *.txt *.bak")];
+        var hits = Object.keys(pd.n.c).filter(function (k) { return glob(m).test(k) && pd.n.c[k].t === "f"; });
+        if (!hits.length) return [E("The system cannot find the file specified.")];
+        if (!canWrite(s, pd.p)) return [E("Access is denied.")];
+        hits.forEach(function (k) { var nk = k.replace(/(\.[^.]*)?$/, ext[1]); pd.n.c[nk] = pd.n.c[k]; if (nk !== k) delete pd.n.c[k]; });
+        s.flags.renMask = 1;
+        return [];
+      }
       var r = at(s, resolve(s, a[0]));
       if (!r) return [E("The system cannot find the file specified.")];
       var par = parentOf(s, r.p), nn = unq(a[1]);
@@ -565,23 +596,169 @@
     var m = FILTERS.find(s, a.filter(function (x) { return x !== f; }), ls);
     return has(a, "/c") ? ["---------- " + f.toUpperCase() + ": " + m[0]] : ["", "---------- " + f.toUpperCase()].concat(m);
   };
+  WIN.attrib = function (s, a) { return winAttrib(s, a); };
+  WIN.xcopy = function (s, a) { return winXcopy(s, a); };
+  WIN.robocopy = function (s, a) { return winRobocopy(s, a); };
+  WIN.call = function (s, a) {
+    var b = batFile(s, a[0]);
+    return b ? runBat(s, b, a.slice(1)) : [E("The system cannot find the path specified."), T("Το call τρέχει ένα αρχείο .bat, π.χ. call site.bat")];
+  };
+  WIN.sfc = function (s, a) {
+    if (!has(a, "/scannow") && !has(a, "/verifyonly")) return ["", "Microsoft (R) Windows (R) Resource Checker Version 6.0", "", "Scans the integrity of all protected system files and replaces incorrect versions with", "correct Microsoft versions.", "", "SFC [/SCANNOW] [/VERIFYONLY]", T("Γράψε sfc /scannow")];
+    s.flags.sfc = 1;
+    return ["", "You must be an administrator running a console session in order to", "use the sfc utility.",
+      T("Το sfc ελέγχει τα αρχεία του ίδιου του ΛΣ και διορθώνει όσα χάλασαν. Θέλει «Γραμμή εντολών ως διαχειριστής» (δεξί κλικ → Εκτέλεση ως διαχειριστής)."),
+      T("Ως διαχειριστής θα έβλεπες: Beginning system scan... Verification 100% complete. Windows Resource Protection did not find any integrity violations.")];
+  };
+  WIN.driverquery = function (s, a) {
+    s.flags.driverquery = 1;
+    return ["", "Module Name  Display Name                  Driver Type   Link Date", "============ ============================= ============= ======================"]
+      .concat(DRIVERS.map(function (d) { return pad(d[0], 12) + " " + pad(d[1], 29) + " " + pad(d[2], 13) + " "; }));
+  };
+  WIN.powershell = function (s) {
+    s.flags.powershell = 1;
+    return [T("Στα αληθινά Windows ανοίγει το PowerShell (PS C:\\Users\\" + USER + ">), το νεότερο κέλυφος. Οι εντολές του λέγονται cmdlets: Get-ChildItem (dir), Set-Location (cd), Get-Content (type), Copy-Item (copy), Get-Process (tasklist), Stop-Process (taskkill)."),
+      T("Τα παλιά ονόματα (dir, cd, copy…) δουλεύουν κι εκεί, σαν «ψευδώνυμα» (aliases).")];
+  };
   WIN.chdir = WIN.cd; WIN.md = WIN.mkdir; WIN.rd = WIN.rmdir; WIN.erase = WIN.del; WIN.rename = WIN.ren;
   Object.keys(WIN_APPS).forEach(function (k) { if (!WIN[k]) WIN[k] = function (s) { return winApp(s, k); }; });
 
   function winCopyMove(s, a, mv) {
     var ps = a.filter(function (x) { return x[0] !== "/"; });
     if (ps.length < 2) return [E("The syntax of the command is incorrect.")];
-    var r = at(s, resolve(s, ps[0]));
+    var sArr = resolve(s, ps[0]);
+    if (/[*?]/.test(sArr[sArr.length - 1])) {   // copy *.txt Backup
+      var m = glob(sArr.pop()), sp = at(s, sArr), dd = at(s, resolve(s, ps[1]));
+      var hits = sp && sp.n.t === "d" ? Object.keys(sp.n.c).filter(function (k) { return m.test(k) && sp.n.c[k].t === "f" && !hidden(sp.n.c[k]); }) : [];
+      if (!hits.length) return [E("The system cannot find the file specified."), "        0 file(s) " + (mv ? "moved." : "copied.")];
+      if (!dd || dd.n.t !== "d") return [E("The system cannot find the path specified."), T("Με μάσκα, ο προορισμός πρέπει να είναι φάκελος που υπάρχει. Φτιάξ' τον πρώτα με md.")];
+      if (!canWrite(s, dd.p) || (mv && !canWrite(s, sp.p))) return [E("Access is denied.")];
+      var lines = [];
+      hits.forEach(function (k) {
+        dd.n.c[k] = mv ? sp.n.c[k] : clone(sp.n.c[k]);
+        if (mv) delete sp.n.c[k];
+        lines.push(mv ? pathStr(s, sp.p.concat(k)) : k);
+      });
+      s.flags.copyMask = 1;
+      return lines.concat(["        " + hits.length + " file(s) " + (mv ? "moved." : "copied.")]);
+    }
+    var r = at(s, sArr);
     if (!r) return [E("The system cannot find the file specified.")];
     if (r.n.t === "d" && !mv) return [E("The system cannot find the file specified."), T("Το copy αντιγράφει αρχεία. Για φακέλους στα αληθινά Windows υπάρχει το xcopy / robocopy.")];
     var dArr = resolve(s, ps[1]), d = at(s, dArr), par, name;
     if (d && d.n.t === "d") { par = d; name = r.p[r.p.length - 1]; }
     else { par = parentOf(s, dArr); name = dArr[dArr.length - 1]; if (!par) return [E("The system cannot find the path specified.")]; }
     if (!canWrite(s, par.p) || (mv && !canWrite(s, r.p))) return [E("Access is denied.")];
-    var copy = r.n.t === "d" ? r.n : { t: "f", x: r.n.x, sz: r.n.sz, m: NOW() };
-    par.n.c[name] = copy;
+    var copy = r.n.t === "d" || mv ? r.n : clone(r.n);
     if (mv) delete parentOf(s, r.p).n.c[r.p[r.p.length - 1]];
+    par.n.c[name] = copy;
     return ["        1 file(s) " + (mv ? "moved." : "copied.")];
+  }
+
+  // αντίγραφο αρχείου ή ολόκληρου φακέλου (με τα χαρακτηριστικά +R/+H)
+  function clone(n) {
+    if (n.t !== "d") return { t: "f", x: n.x, sz: n.sz, m: n.m, a: n.a ? { a: n.a.a, r: n.a.r, h: n.a.h, s: n.a.s } : undefined };
+    var c = {};
+    Object.keys(n.c).forEach(function (k) { c[k] = clone(n.c[k]); });
+    return { t: "d", c: c, m: NOW() };
+  }
+  function mkdirp(s, arr) {
+    var n = s.root;
+    arr.forEach(function (x) { var r = child(n, x, true); if (!r) { n.c[x] = D(); n.c[x].m = NOW(); n = n.c[x]; } else n = r.n; });
+    return n;
+  }
+
+  // xcopy πηγή προορισμός [/s] [/e] [/i]: αντιγράφει αρχεία και (με /s, /e) και τους υποφακέλους
+  function winXcopy(s, a) {
+    var ps = a.filter(function (x) { return x[0] !== "/"; }), sub = has(a, "/s") || has(a, "/e"), empty = has(a, "/e"), asDir = has(a, "/i");
+    if (!ps.length) return [E("Invalid number of parameters"), T("Παράδειγμα: xcopy Documents Backup\\Documents /e /i")];
+    var sArr = resolve(s, ps[0]), mask = null;
+    if (/[*?]/.test(sArr[sArr.length - 1])) mask = glob(sArr.pop());
+    var src = at(s, sArr);
+    if (!src) return [E("File not found - " + unq(ps[0])), "0 File(s) copied"];
+    var dArr = ps[1] ? resolve(s, ps[1]) : s.cwd.slice(), dst = at(s, dArr), single = src.n.t !== "d";
+    if (dst && dst.n.t !== "d" && !single) return [E("Cannot perform a cyclic copy")];
+    if (!dst && !single && !asDir) return ["Does " + pathStr(s, dArr) + " specify a file name", "or directory name on the target", "(F = file, D = directory)? ",
+      T("Στα αληθινά Windows εδώ πατάς D (φάκελος). Βάλε /i στο τέλος και το xcopy το καταλαβαίνει μόνο του.")];
+    if (!canWrite(s, dArr)) return [E("Access denied"), "0 File(s) copied"];
+    if (isInside(dArr, sArr) && !single) return [E("Cannot perform a cyclic copy"), "0 File(s) copied"];
+    var shown = unq(ps[0]).replace(/[\\/]+$/, ""), list = [];
+    if (single) {
+      var tgt = dst && dst.n.t === "d" ? dst.n : mkdirp(s, dArr.slice(0, -1)), nm = dst && dst.n.t === "d" ? src.p[src.p.length - 1] : dArr[dArr.length - 1];
+      tgt.c[nm] = clone(src.n); list.push(shown);
+    } else {
+      (function walk(from, to, rel, top) {
+        Object.keys(from.c).forEach(function (k) {
+          var n = from.c[k];
+          if (n.t === "f") { if ((!top || !mask || mask.test(k)) && !hidden(n)) { to.c[k] = clone(n); list.push(shown + "\\" + rel + k); } }
+          else if (sub && (empty || Object.keys(n.c).length)) { if (!child(to, k, true)) { to.c[k] = D(); to.c[k].m = NOW(); } walk(n, child(to, k, true).n, rel + k + "\\", false); }
+        });
+      })(src.n, mkdirp(s, dArr), "", true);
+    }
+    s.flags.xcopy = 1; if (sub) s.flags.xcopySub = 1;
+    return list.concat([list.length + " File(s) copied"]);
+  }
+
+  // robocopy πηγή προορισμός [μάσκα] [/e]: αντιγράφει όσα λείπουν ή άλλαξαν και βγάζει σύνοψη
+  function winRobocopy(s, a) {
+    var ps = a.filter(function (x) { return x[0] !== "/"; }), sub = has(a, "/e") || has(a, "/s") || has(a, "/mir");
+    if (ps.length < 2) return ["", "-------------------------------------------------------------------------------", "   ROBOCOPY     ::     Robust File Copy for Windows", "-------------------------------------------------------------------------------", "",
+      "               Usage :: ROBOCOPY source destination [file [file]...] [options]", T("Παράδειγμα: robocopy Pictures Backup\\Pictures /e")];
+    var src = at(s, resolve(s, ps[0])), dArr = resolve(s, ps[1]), mask = glob(unq(ps[2] || "*.*").replace(/^\*\.\*$/, "*"));
+    if (!src || src.n.t !== "d") return [E("ERROR 2 (0x00000002) Accessing Source Directory " + pathStr(s, resolve(s, ps[0])) + "\\"), E("The system cannot find the file specified.")];
+    if (!canWrite(s, dArr)) return [E("ERROR 5 (0x00000005) Accessing Destination Directory " + pathStr(s, dArr) + "\\"), E("Access is denied.")];
+    var dirs = [0, 0, 0], files = [0, 0, 0], log = [], d = new Date();
+    (function walk(from, to, path, top) {
+      dirs[0]++;
+      var made = !to;
+      if (!to) { to = mkdirp(s, path); dirs[1]++; } else dirs[2]++;
+      var fl = Object.keys(from.c).filter(function (k) { return from.c[k].t === "f" && mask.test(k); });
+      log.push("\t  " + (made ? "New Dir " : "        ") + lpad(fl.length, 10) + "\t" + pathStr(s, path) + "\\");
+      fl.forEach(function (k) {
+        var n = from.c[k], old = child(to, k, true);
+        files[0]++;
+        if (old && old.n.t === "f" && old.n.x === n.x && old.n.sz === n.sz) { files[2]++; return; }
+        to.c[old ? old.k : k] = clone(n); files[1]++;
+        log.push("\t    " + (old ? "Newer   " : "New File") + "\t\t" + lpad(fsize(n), 8) + "\t" + k);
+      });
+      if (sub) Object.keys(from.c).forEach(function (k) { if (from.c[k].t === "d") { var c = child(to, k, true); walk(from.c[k], c && c.n, path.concat(k), false); } });
+    })(src.n, (function () { var r = at(s, dArr); return r && r.n.t === "d" ? r.n : null; })(), dArr, true);
+    s.flags.robocopy = 1; s.robo = (s.robo || 0) + 1;
+    var line = "------------------------------------------------------------------------------";
+    function row(lbl, v) { return "   " + pad(lbl, 6) + ":" + [v[0], v[1], v[2], 0, 0, 0].map(function (x) { return lpad(x, 10); }).join(""); }
+    return ["", "-------------------------------------------------------------------------------", "   ROBOCOPY     ::     Robust File Copy for Windows", "-------------------------------------------------------------------------------", "",
+      "  Started : " + EN_D[d.getDay()] + ", " + d.getDate() + " " + EN_M[d.getMonth()] + " " + d.getFullYear() + " " + hms(d),
+      "   Source : " + pathStr(s, src.p) + "\\", "     Dest : " + pathStr(s, dArr) + "\\", "", "    Files : " + unq(ps[2] || "*.*"), "",
+      "  Options : " + unq(ps[2] || "*.*") + (sub ? " /S /E" : "") + " /DCOPY:DA /COPY:DAT /R:1000000 /W:30", "", line, ""].concat(log, ["", line, "",
+      "               Total    Copied   Skipped  Mismatch    FAILED    Extras", row("Dirs", dirs), row("Files", files), "",
+      T(files[2] ? "Skipped: όσα υπήρχαν ήδη ίδια στον προορισμό δεν ξαναγράφτηκαν. Γι' αυτό το robocopy είναι ιδανικό για αντίγραφα ασφαλείας." : "Ξανατρέξε την ίδια εντολή: όσα υπάρχουν ήδη θα πάνε στη στήλη Skipped.")]);
+  }
+
+  var DRIVERS = [
+    ["ACPI", "Microsoft ACPI Driver", "Kernel"], ["disk", "Disk Driver", "Kernel"], ["e1dexpress", "Intel(R) PRO/1000 PCI Express", "Kernel"],
+    ["HDAudBus", "Microsoft UAA Bus Driver for", "Kernel"], ["igfxn", "igfxn", "Kernel"], ["kbdhid", "Keyboard HID Driver", "Kernel"],
+    ["mouhid", "Mouse HID Driver", "Kernel"], ["Ntfs", "Ntfs", "File System"], ["stornvme", "Microsoft Standard NVM Expres", "Kernel"],
+    ["Tcpip", "TCP/IP Protocol Driver", "Kernel"], ["USBXHCI", "USB xHCI Compliant Host Contr", "Kernel"], ["usbhub3", "USB Hub 3.0", "Kernel"],
+    ["WdFilter", "Microsoft Defender Antivirus", "File System"], ["Wof", "Windows Overlay File System F", "File System"]
+  ];
+
+  function winAttrib(s, a) {
+    var fl = a.filter(function (x) { return /^[+-][rhsa]$/i.test(x); }), ps = a.filter(function (x) { return !/^[+-][rhsa]$/i.test(x) && x[0] !== "/"; });
+    var arr = ps[0] ? resolve(s, ps[0]) : s.cwd.concat("*"), name = arr.pop(), par = at(s, arr);
+    if (!par || par.n.t !== "d") return [E("The system cannot find the path specified.")];
+    var re = glob(name), keys = Object.keys(par.n.c).filter(function (k) { return re.test(k) && (/[*?]/.test(name) ? par.n.c[k].t === "f" : true); });
+    if (!keys.length) return ["File not found - " + pathStr(s, par.p.concat(name))];
+    if (fl.length && !canWrite(s, par.p)) return [E("Access denied - " + pathStr(s, par.p.concat(keys[0])))];
+    if (fl.length && fl.some(function (f) { return /^[+-]s$/i.test(f); })) return [E("Access denied - " + pathStr(s, par.p.concat(keys[0]))), T("Το S (αρχείο συστήματος) το βάζει το ίδιο το ΛΣ. Δοκίμασε +R (μόνο ανάγνωση) ή +H (κρυφό).")];
+    var out = [];
+    keys.forEach(function (k) {
+      var n = par.n.c[k];
+      n.a = n.a || { a: n.t === "f" };
+      if (fl.length) fl.forEach(function (f) { var on = f[0] === "+", c = f[1].toLowerCase(); n.a[c] = on; s.flags["attr" + (on ? "+" : "-") + c] = 1; });
+      else out.push((n.a.a ? "A" : " ") + "    " + (n.a.s ? "S" : " ") + (n.a.h ? "H" : " ") + (n.a.r ? "R" : " ") + "        " + pathStr(s, par.p.concat(k)));
+    });
+    if (!fl.length) s.flags.attribShown = 1;
+    return out;
   }
 
   // ================= LINUX =================
@@ -1115,10 +1292,12 @@
   };
 
   // ================= μηχανή εκτέλεσης =================
-  function splitPipe(line) {
+  // win: στη Γραμμή εντολών το ^ «προστατεύει» τον επόμενο χαρακτήρα (echo md a ^> b >> x.bat)
+  function splitPipe(line, win) {
     var out = [], cur = "", q = null;
     for (var i = 0; i < line.length; i++) {
       var ch = line[i];
+      if (win && ch === "^" && !q) { cur += ch + (line[i + 1] || ""); i++; continue; }
       if (q) { if (ch === q) q = null; cur += ch; continue; }
       if (ch === '"' || ch === "'") { q = ch; cur += ch; continue; }
       if (ch === "|") { out.push(cur.trim()); cur = ""; continue; }
@@ -1128,10 +1307,11 @@
     return out;
   }
 
-  function findRedir(line) {
+  function findRedir(line, win) {
     var q = null;
     for (var i = 0; i < line.length; i++) {
       var ch = line[i];
+      if (win && ch === "^" && !q) { i++; continue; }
       if (q) { if (ch === q) q = null; continue; }
       if (ch === '"' || ch === "'") { q = ch; continue; }
       if (ch === ">") {
@@ -1140,6 +1320,44 @@
       }
     }
     return null;
+  }
+
+  // ================= αρχεία δέσμης (.bat) =================
+  // «site» ή «site.bat» ή «call site.bat»: τρέχει μία-μία τις γραμμές του αρχείου, όπως το cmd
+  function batFile(s, name) {
+    name = unq(name || "");
+    if (!name) return null;
+    var tries = /\.(bat|cmd)$/i.test(name) ? [name] : [name + ".bat", name + ".cmd"];
+    for (var i = 0; i < tries.length; i++) {
+      var r = at(s, resolve(s, tries[i]));
+      if (r && r.n.t === "f") return r;
+    }
+    return null;
+  }
+  function runBat(s, r, args) {
+    s._bat = (s._bat || 0) + 1;
+    if (s._bat > 3) { s._bat--; return [E("****** B A T C H   R E C U R S I O N  exceeds STACK limits ******"), T("Το .bat καλεί τον εαυτό του ξανά και ξανά!")]; }
+    var name = r.p[r.p.length - 1], out = [], echoOn = true, stop = false, ran = [];
+    r.n.x.split("\n").forEach(function (line) {
+      if (stop) return;
+      var t = line.trim().replace(/%(\d)/g, function (m, d) { return d === "0" ? name : unq(args[d - 1] || ""); });
+      var quiet = t[0] === "@";
+      if (quiet) t = t.slice(1).trim();
+      if (!t || /^(rem\b|::)/i.test(t)) return;
+      var eo = /^echo\s+(off|on)\s*$/i.exec(t);
+      if (eo) { echoOn = eo[1].toLowerCase() === "on"; return; }
+      if (/^pause\b/i.test(t)) { out.push("Press any key to continue . . ."); return; }
+      if (/^exit\b/i.test(t)) { stop = true; return; }
+      if (echoOn && !quiet) out.push("", pathStr(s, s.cwd) + ">" + t);
+      ran.push(t);
+      var res = execLine(s, t);
+      if (!res.clear) out = out.concat(res.out);
+    });
+    s._bat--;
+    s.flags.batRan = 1;
+    s.bats = (s.bats || []).concat([{ name: name.toLowerCase(), lines: ran, echoOn: echoOn }]);
+    if (echoOn && ran.length) out.push(T("Βλέπεις κάθε εντολή πριν τρέξει. Για να μη φαίνονται, βάλε πρώτη γραμμή @echo off."));
+    return out;
   }
 
   function exec(s, seg) {
@@ -1160,6 +1378,10 @@
     }
     var table = s.win ? WIN : LNX;
     if (!name) return [];
+    if (s.win && !Object.prototype.hasOwnProperty.call(table, name)) {
+      var bat = batFile(s, tk[0]);
+      if (bat) return runBat(s, bat, args);
+    }
     if (!Object.prototype.hasOwnProperty.call(table, name)) {
       var cross = (s.win ? WIN_CROSS : LNX_CROSS)[name];
       var out = s.win ? [E("'" + tk[0] + "' is not recognized as an internal or external command,"), E("operable program or batch file.")] : [E(tk[0] + ": command not found")];
@@ -1176,21 +1398,41 @@
     if (!lineTxt) return finish(s, view);
     if (s.hist[s.hist.length - 1] !== lineTxt) s.hist.push(lineTxt);
     s.hi = s.hist.length;
+    var res = execLine(s, lineTxt);
+    if (res.clear) { s.log = []; if (view) view.log.innerHTML = ""; return finish(s, view); }
+    var out = res.out, delay = res.delay;
+    if (delay && out.length) {
+      s.busy = true; if (view) view.line.style.visibility = "hidden";
+      var idx = 0;
+      (function step() {
+        if (!s.busy) return;
+        print(s, out[idx++]);
+        if (idx < out.length) s.timer = setTimeout(step, /^(Reply|64 bytes)/.test(plain(out[idx])) ? delay : 40);
+        else { s.busy = false; finish(s, view); }
+      })();
+      return;
+    }
+    out.forEach(function (o) { print(s, o); });
+    finish(s, view);
+  }
+
+  // μία γραμμή εντολής (με | και > / >>) → { out, delay } ή { clear }. Την καλεί και το .bat για κάθε γραμμή του.
+  function execLine(s, lineTxt) {
     // ανακατεύθυνση σε αρχείο: εντολή > αρχείο  /  εντολή >> αρχείο
-    var redir = findRedir(lineTxt);
+    var redir = findRedir(lineTxt, s.win);
     if (redir) {
-      if (!redir.file) { print(s, E(s.win ? "The syntax of the command is incorrect." : "bash: syntax error near unexpected token `newline'")); return finish(s, view); }
+      if (!redir.file) return { out: [E(s.win ? "The syntax of the command is incorrect." : "bash: syntax error near unexpected token `newline'")] };
       lineTxt = redir.cmd;
     }
 
     if (s.win) lineTxt = lineTxt.replace(/%USERPROFILE%/gi, "C:\\Users\\" + USER).replace(/%HOMEPATH%/gi, "\\Users\\" + USER).replace(/%USERNAME%/gi, USER).replace(/%COMPUTERNAME%/gi, "SAEK-PC07").replace(/%CD%/gi, pathStr(s, s.cwd));
-    var segs = splitPipe(lineTxt), low = lineTxt.toLowerCase();
+    var segs = splitPipe(lineTxt, s.win), low = lineTxt.toLowerCase();
     if (s.win && /^tasklist/.test(low) && /\|\s*find(str)?\b/.test(low) && /chrome/.test(low)) s.flags.countChrome = 1;
     if (!s.win && /^ps\b/.test(low) && /\|\s*grep\b/.test(low) && /firefox/.test(low)) s.flags.countFirefox = 1;
     if (!s.win && /^ps\b/.test(low) && /\|/.test(low)) s.ran.psall = 1;
 
     var res = exec(s, segs[0]);
-    if (res && res.clear) { s.log = []; if (view) view.log.innerHTML = ""; return finish(s, view); }
+    if (res && res.clear) return { clear: true };
     var delay = res && res.delay, out = Array.isArray(res) ? res : (res && res.out) || [];
 
     for (var i = 1; i < segs.length; i++) {
@@ -1222,20 +1464,7 @@
       }
       delay = 0;
     }
-
-    if (delay && out.length) {
-      s.busy = true; if (view) view.line.style.visibility = "hidden";
-      var idx = 0;
-      (function step() {
-        if (!s.busy) return;
-        print(s, out[idx++]);
-        if (idx < out.length) s.timer = setTimeout(step, /^(Reply|64 bytes)/.test(plain(out[idx])) ? delay : 40);
-        else { s.busy = false; finish(s, view); }
-      })();
-      return;
-    }
-    out.forEach(function (o) { print(s, o); });
-    finish(s, view);
+    return { out: out, delay: delay };
   }
 
   // ================= προβολή =================
@@ -2309,6 +2538,201 @@
           hint: "Στο 3 λήγει το κβάντο της P1: έχουν φτάσει P2 (στο 1) και P3 (στο 3) → ουρά P2, P3, P1. Όποια φτάνει μπαίνει πριν από αυτήν που μόλις διακόπηκε.",
           procs: [["P1", 0, 5], ["P2", 1, 4], ["P3", 3, 2], ["P4", 5, 3], ["P5", 6, 1]] }
       ]
+    },
+    {
+      id: "e5", num: 5, title: "MS-DOS και Γραμμή εντολών (cmd)", short: "cmd · .bat", date: "2026-11-10",
+      ex: [
+        { id: "e5a", type: "quiz", tag: "Εύκολο", title: "Από το MS-DOS στο cmd",
+          desc: "Λίγη ιστορία και η «γραμματική» μιας εντολής: εντολή, παράμετροι, βοήθεια.",
+          hint: "Μια εντολή γράφεται: όνομα + παράμετροι (π.χ. dir /b). Βοήθεια: εντολή /? ή help εντολή.",
+          items: [
+            { q: "Το MS-DOS κυκλοφόρησε το…", opts: ["1981", "1995", "2001"], a: "1981", why: "Για τον πρώτο IBM PC. Μέχρι και τα Windows 98 «πατούσαν» πάνω του." },
+            { q: "Στην εντολή dir /b, το /b είναι…", opts: ["η εντολή", "παράμετρος (διακόπτης)", "φάκελος"], a: "παράμετρος (διακόπτης)", why: "Οι παράμετροι αλλάζουν τι κάνει η εντολή: το /b δείχνει μόνο τα ονόματα." },
+            { q: "Πώς βλέπω τη βοήθεια μιας εντολής;", opts: ["εντολή /?", "help εντολή", "και τα δύο"], a: "και τα δύο", why: "Π.χ. dir /? ή help dir." },
+            { q: "Στο cmd, DIR και dir είναι…", opts: ["το ίδιο", "διαφορετικές εντολές"], a: "το ίδιο", why: "Το cmd δεν ξεχωρίζει κεφαλαία-μικρά. Στο Linux όμως το Desktop δεν είναι το ίδιο με το desktop!" },
+            { q: "Το cmd.exe των σημερινών Windows είναι…", opts: ["το ίδιο το MS-DOS", "πρόγραμμα που κρατά τις εντολές του MS-DOS", "εικονική μηχανή"], a: "πρόγραμμα που κρατά τις εντολές του MS-DOS", why: "Από τα Windows XP δεν υπάρχει MS-DOS από κάτω. Το cmd κρατά τις εντολές για συμβατότητα." },
+            { q: "Ποιο είναι το νεότερο κέλυφος των Windows;", opts: ["PowerShell", "MS-DOS", "bash"], a: "PowerShell", why: "Έχει εντολές (cmdlets) όπως Get-ChildItem, αλλά δέχεται και τα παλιά dir, cd, copy." }
+          ] },
+        { id: "e5b", type: "term", os: "windows", tag: "Εύκολο", title: "Περπάτημα στους φακέλους",
+          desc: "Η διαδρομή C:\\Users\\mathitis\\Downloads είναι ΑΠΟΛΥΤΗ: ξεκινά από τη ρίζα του δίσκου (C:\\) και δουλεύει από όπου κι αν είσαι. Η ..\\Documents είναι ΣΧΕΤΙΚΗ: ξεκινά από εκεί που βρίσκεσαι (.. = ο «γονικός» φάκελος).",
+          steps: [
+            { t: "Μπες στο Desktop (σχετική διαδρομή)", hint: ["cd Desktop"], check: function (s) { return markOnce(s, "_b1", cwdIs(s, ["Users", USER, "Desktop"])); } },
+            { t: "Πήγαινε στα Documents χωρίς να γυρίσεις πρώτα πίσω", hint: ["cd ..\\Documents"], check: function (s) { return cwdIs(s, ["Users", USER, "Documents"]) && H(s, /^cd\s*\.\.[\\/]documents/i); } },
+            { t: "Πήγαινε στη ρίζα του δίσκου", hint: ["cd \\"], check: function (s) { return markOnce(s, "_b3", s.cwd.length === 0); } },
+            { t: "Πήγαινε στα Downloads με απόλυτη διαδρομή", hint: ["cd C:\\Users\\mathitis\\Downloads"], check: function (s) { return cwdIs(s, ["Users", USER, "Downloads"]) && H(s, /^cd\s+(\/d\s+)?(c:)?\\users\\mathitis\\downloads/i); } },
+            { t: "Δες τι έχει μέσα", hint: ["dir"], check: function (s) { return cwdIs(s, ["Users", USER, "Downloads"]) && H(s, /^dir\b/i); } }
+          ],
+          asks: [
+            { q: "Ποιο πρόγραμμα εγκατάστασης υπάρχει στα Downloads;", a: ["setup.exe", "setup"] },
+            { q: "Πόσα αρχεία έχει ο φάκελος Documents;", num: 2 },
+            { q: "Τι γράφει το prompt όταν είσαι στη ρίζα;", a: [/^c:\\>?$/] }
+          ] },
+        { id: "e5c", type: "term", os: "windows", tag: "Εύκολο", title: "Φτιάξε και σβήσε φακέλους",
+          desc: "md (ή mkdir) φτιάχνει φάκελο, ακόμα και ολόκληρη διαδρομή μαζί. rd (ή rmdir) σβήνει φάκελο, αλλά μόνο αν είναι άδειος. Με rd /s σβήνει και τα περιεχόμενα. tree δείχνει τους φακέλους σαν δέντρο.",
+          steps: [
+            { t: "Φτιάξε με ΜΙΑ εντολή τον Proxeiro και μέσα του τον a, και μέσα σε αυτόν τον b", hint: ["md Proxeiro\\a\\b"], check: function (s) { return isDir(s, ["Proxeiro", "a", "b"]); } },
+            { t: "Δες το δέντρο του", hint: ["tree Proxeiro"], check: function (s) { return H(s, /^tree\s+proxeiro/i); } },
+            { t: "Προσπάθησε να τον σβήσεις με σκέτο rd", hint: ["rd Proxeiro"], check: function (s) { return s.flags.rdNotEmpty; } },
+            { t: "Σβήσ' τον μαζί με τα περιεχόμενα", hint: ["rd /s Proxeiro"], check: function (s) { return s.flags.rdNotEmpty && !node(s, ["Proxeiro"]); } }
+          ],
+          asks: [
+            { q: "Τι απάντησε το σκέτο rd; (στα αγγλικά)", a: [/not empty/] },
+            { q: "Πόσους φακέλους έφτιαξε το md Proxeiro\\a\\b;", num: 3 }
+          ] },
+        { id: "e5d", type: "quiz", tag: "Εύκολο", title: "Απόλυτη ή σχετική;",
+          desc: "Απόλυτη = ξεκινά από τη ρίζα (C:\\ ή σκέτο \\). Σχετική = ξεκινά από τον φάκελο που βρίσκεσαι.",
+          hint: "Κοίτα μόνο την αρχή: C:\\ ή \\ σημαίνει απόλυτη. Όνομα φακέλου, . ή .. σημαίνει σχετική.",
+          opts: ["Απόλυτη", "Σχετική"],
+          items: [
+            { q: "C:\\Users\\mathitis\\Desktop", a: "Απόλυτη", why: "Ξεκινά από τον δίσκο C:." },
+            { q: "Desktop\\SAEK", a: "Σχετική", why: "Ξεκινά από τον φάκελο που είσαι τώρα." },
+            { q: "..\\Documents", a: "Σχετική", why: "Ένα επίπεδο πάνω από εκεί που είσαι, και μετά Documents." },
+            { q: "\\Windows\\System32", a: "Απόλυτη", why: "Το \\ στην αρχή σημαίνει «από τη ρίζα του δίσκου»." },
+            { q: "%USERPROFILE%\\Music", a: "Απόλυτη", why: "Η μεταβλητή γίνεται C:\\Users\\mathitis, άρα ξεκινά από τον δίσκο." },
+            { q: "Είσαι στο C:\\Users\\mathitis\\Desktop. Πού πας με cd ..\\..;", opts: ["C:\\Users", "C:\\Users\\mathitis", "C:\\"], a: "C:\\Users", why: "Κάθε .. ανεβαίνει ένα επίπεδο: Desktop → mathitis → Users." }
+          ] },
+        { id: "e5e", type: "term", os: "windows", tag: "Μέτριο", title: "Αντιγραφή, μετακίνηση, μετονομασία",
+          desc: "copy = αντίγραφο (το αρχικό μένει). move = αλλάζει θέση. ren = αλλάζει μόνο όνομα. type = δείχνει το περιεχόμενο. Όλα στο Desktop.",
+          steps: [
+            { t: "Μπες στο Desktop", hint: ["cd Desktop"], check: function (s) { return markOnce(s, "_e1", cwdIs(s, ["Users", USER, "Desktop"])); } },
+            { t: "Φτιάξε αντίγραφο του ergasia.txt με όνομα ergasia_old.txt", hint: ["copy ergasia.txt ergasia_old.txt"], check: function (s) { return markOnce(s, "_e2", !!node(s, ["Desktop", "ergasia_old.txt"])); } },
+            { t: "Φτιάξε τον φάκελο Archeio", hint: ["md Archeio"], check: function (s) { return isDir(s, ["Desktop", "Archeio"]); } },
+            { t: "Μετακίνησε το αντίγραφο μέσα στο Archeio", hint: ["move ergasia_old.txt Archeio"], check: function (s) { return markOnce(s, "_e4", s._e2 != null && !node(s, ["Desktop", "ergasia_old.txt"]) && (!!node(s, ["Desktop", "Archeio", "ergasia_old.txt"]) || !!node(s, ["Desktop", "Archeio", "palia.txt"]))); } },
+            { t: "Μετονόμασέ το σε palia.txt", hint: ["ren Archeio\\ergasia_old.txt palia.txt"], check: function (s) { return !!node(s, ["Desktop", "Archeio", "palia.txt"]); } },
+            { t: "Δες το περιεχόμενό του", hint: ["type Archeio\\palia.txt"], check: function (s) { return H(s, /^type\s+.*palia\.txt/i); } }
+          ],
+          asks: [
+            { q: "Ποια εντολή αλλάζει θέση σε ένα αρχείο;", a: ["move"] },
+            { q: "Ποια εντολή αλλάζει μόνο το όνομα;", a: ["ren", "rename"] },
+            { q: "Υπάρχει ακόμα το ergasia.txt στο Desktop; (ναι / όχι)", a: ["ναι", "nai", "yes"] }
+          ] },
+        { id: "e5f", type: "term", os: "windows", tag: "Μέτριο", title: "Οι μασκές * και ?",
+          desc: "Το * ταιριάζει με όσους χαρακτήρες θες (και κανέναν). Το ? με ΑΚΡΙΒΩΣ έναν. Έτσι το *.tmp πιάνει όλα τα .tmp, ενώ το test?.tmp μόνο όσα έχουν έναν χαρακτήρα μετά το test.",
+          steps: [
+            { t: "Στο Desktop φτιάξε τα test1.tmp, test2.tmp και test10.tmp", hint: ["cd Desktop", "echo a > test1.tmp", "echo b > test2.tmp", "echo c > test10.tmp"], check: function (s) { return markOnce(s, "_f1", ["test1.tmp", "test2.tmp", "test10.tmp"].every(function (f) { return node(s, ["Desktop", f]); })); } },
+            { t: "Δες μόνο τα .tmp", hint: ["dir *.tmp"], check: function (s) { return s._f1 != null && H(s, /^dir\s+\*\.tmp/i); } },
+            { t: "Δες μόνο όσα ταιριάζουν στο test?.tmp", hint: ["dir test?.tmp"], check: function (s) { return H(s, /^dir\s+test\?\.tmp/i); } },
+            { t: "Σβήσε με μία εντολή τα test?.tmp", hint: ["del test?.tmp"], check: function (s) { return markOnce(s, "_f4", s._f1 != null && !node(s, ["Desktop", "test1.tmp"]) && !node(s, ["Desktop", "test2.tmp"]) && (!!node(s, ["Desktop", "test10.tmp"]) || !!node(s, ["Desktop", "test10.bak"]))); } },
+            { t: "Άλλαξε την κατάληξη σε όσα .tmp έμειναν σε .bak", hint: ["ren *.tmp *.bak"], check: function (s) { return s._f4 != null && !!node(s, ["Desktop", "test10.bak"]); } }
+          ],
+          asks: [
+            { q: "Πόσα αρχεία έδειξε το dir test?.tmp;", num: 2 },
+            { q: "Ποιο αρχείο γλίτωσε από το del test?.tmp;", a: ["test10.tmp"] },
+            { q: "Με πόσους χαρακτήρες ταιριάζει το ?;", num: 1 }
+          ] },
+        { id: "e5g", type: "term", os: "windows", tag: "Μέτριο", title: "Κρυφό και μόνο για ανάγνωση",
+          desc: "Το attrib δείχνει και αλλάζει τα χαρακτηριστικά ενός αρχείου: +H = κρυφό (το dir δεν το δείχνει), +R = μόνο για ανάγνωση (δεν σβήνεται). Με - τα βγάζεις.",
+          steps: [
+            { t: "Στο Desktop φτιάξε το mystiko.txt", hint: ["cd Desktop", "echo kodikos > mystiko.txt"], check: function (s) { return markOnce(s, "_g1", !!node(s, ["Desktop", "mystiko.txt"])); } },
+            { t: "Κάν' το κρυφό και μόνο για ανάγνωση και δες τα χαρακτηριστικά του", hint: ["attrib +h +r mystiko.txt", "attrib mystiko.txt"], check: function (s) { var r = node(s, ["Desktop", "mystiko.txt"]); return markOnce(s, "_g2", !!(r && r.n.a && r.n.a.h && r.n.a.r) && s.flags.attribShown); } },
+            { t: "Δες ότι το dir δεν το δείχνει, αλλά το dir /a ναι", hint: ["dir", "dir /a"], check: function (s) { return s._g2 != null && s.flags.dirAll; } },
+            { t: "Προσπάθησε να το σβήσεις", hint: ["del mystiko.txt"], check: function (s) { return s._g2 != null && (s.flags.hidDel || s.flags.roDenied); } },
+            { t: "Βγάλε τα χαρακτηριστικά και σβήσ' το", hint: ["attrib -h -r mystiko.txt", "del mystiko.txt"], check: function (s) { return s._g2 != null && !node(s, ["Desktop", "mystiko.txt"]); } }
+          ],
+          asks: [
+            { q: "Το γράμμα του «κρυφού» στο attrib", a: ["h", "+h"] },
+            { q: "Το γράμμα του «μόνο για ανάγνωση»", a: ["r", "+r"] },
+            { q: "Με ποια παράμετρο το dir δείχνει και τα κρυφά;", a: ["/a", "dir /a"] }
+          ] },
+        { id: "e5h", type: "term", os: "windows", tag: "Μέτριο", title: "Αντίγραφο ασφαλείας: xcopy και robocopy",
+          desc: "Το copy δεν αντιγράφει φακέλους. Για ολόκληρους φακέλους υπάρχει το xcopy (/e = και οι υποφάκελοι, /i = ο προορισμός είναι φάκελος) και το νεότερο robocopy, που αντιγράφει μόνο ό,τι λείπει ή άλλαξε.",
+          steps: [
+            { t: "Αντίγραψε όλο τον φάκελο Documents στο Backup\\Documents", hint: ["xcopy Documents Backup\\Documents /e /i"], check: function (s) { return s.flags.xcopy && !!node(s, ["Backup", "Documents", "sxolio.txt"]); } },
+            { t: "Αντίγραψε τις Εικόνες με robocopy", hint: ["robocopy Pictures Backup\\Pictures /e"], check: function (s) { return s.flags.robocopy && !!node(s, ["Backup", "Pictures", "diakopes.png"]); } },
+            { t: "Ξανατρέξε ακριβώς το ίδιο robocopy και κοίτα τη στήλη Skipped", hint: ["robocopy Pictures Backup\\Pictures /e"], check: function (s) { return s.robo >= 2; } },
+            { t: "Δες όλο το αντίγραφο σαν δέντρο, με τα αρχεία", hint: ["tree Backup /f"], check: function (s) { return H(s, /^tree\s+backup\b.*\/f/i); } }
+          ],
+          asks: [
+            { q: "Πόσα αρχεία αντέγραψε το xcopy;", num: 2 },
+            { q: "Στο 2ο robocopy, πόσα αρχεία πήγαν στη στήλη Skipped;", num: 1 },
+            { q: "Ποια παράμετρος του xcopy παίρνει και τους υποφακέλους, ακόμα και τους άδειους;", a: ["/e"] }
+          ] },
+        { id: "e5i", type: "quiz", tag: "Μέτριο", title: "Ποια εντολή κάνει τι;",
+          desc: "Αντιστοίχισε κάθε δουλειά με την εντολή της.",
+          hint: "Θυμήσου: copy = αρχεία, xcopy = και φάκελοι. ren = όνομα, move = θέση. attrib = χαρακτηριστικά.",
+          opts: ["type", "xcopy", "tree", "attrib", "ren", "md", "del", "move"],
+          items: [
+            { q: "Δείχνει το περιεχόμενο ενός αρχείου κειμένου", a: "type" },
+            { q: "Αντιγράφει ολόκληρο φάκελο με τους υποφακέλους του", a: "xcopy" },
+            { q: "Δείχνει τους φακέλους σαν δέντρο", a: "tree" },
+            { q: "Κάνει ένα αρχείο κρυφό", a: "attrib" },
+            { q: "Αλλάζει όνομα σε αρχείο, όχι θέση", a: "ren" },
+            { q: "Φτιάχνει φάκελο", a: "md" },
+            { q: "Σβήνει αρχεία (όχι φακέλους)", a: "del" },
+            { q: "Πηγαίνει ένα αρχείο σε άλλο φάκελο", a: "move" }
+          ] },
+        { id: "e5j", type: "term", os: "windows", tag: "Μέτριο", title: "Εργαλεία συστήματος",
+          desc: "Μερικά εργαλεία υπάρχουν μόνο (ή πιο γρήγορα) στη Γραμμή εντολών: systeminfo (όλα τα στοιχεία του PC), ipconfig /all (το δίκτυο με λεπτομέρειες), driverquery (οι οδηγοί συσκευών), sfc /scannow (έλεγχος αρχείων συστήματος) και τα γνωστά tasklist / taskkill.",
+          steps: [
+            { t: "Βρες μόνο τη γραμμή της μνήμης RAM", hint: ['systeminfo | find "Total Physical Memory"'], check: function (s) { return H(s, /^systeminfo\b.*\|\s*find/i); } },
+            { t: "Δες το δίκτυο με όλες τις λεπτομέρειες", hint: ["ipconfig /all"], check: function (s) { return H(s, /^ipconfig\s+\/all/i); } },
+            { t: "Δες τους οδηγούς συσκευών", hint: ["driverquery"], check: function (s) { return s.flags.driverquery; } },
+            { t: "Ξεκίνα έλεγχο των αρχείων συστήματος", hint: ["sfc /scannow"], check: function (s) { return s.flags.sfc; } },
+            { t: "Κλείσε το κολλημένο paixnidi.exe", hint: ["taskkill /im paixnidi.exe /f"], check: function (s) { return !procNamed(s, "paixnidi.exe"); } }
+          ],
+          asks: [
+            { q: "Η μνήμη RAM του υπολογιστή (MB)", a: ["16183", "16183 mb"] },
+            { q: "Η φυσική διεύθυνση (MAC) της κάρτας δικτύου", a: ["8C-04-BA-3F-21-7D"] },
+            { q: "Τι χρειάζεται το sfc /scannow για να τρέξει;", a: [/διαχειρ/, /admin/] },
+            { q: "Το Module Name του οδηγού της κάρτας δικτύου (Intel)", a: ["e1dexpress"] }
+          ] },
+        { id: "e5k", type: "term", os: "windows", tag: "Εύκολο", title: "Το πρώτο μου .bat",
+          desc: "Ένα αρχείο .bat (αρχείο δέσμης) είναι απλώς εντολές, μία ανά γραμμή. Το γράφεις με echo … >> αρχείο.bat (ή στο Σημειωματάριο) και το τρέχεις γράφοντας το όνομά του. Η πρώτη γραμμή @echo off κρύβει τις ίδιες τις εντολές, για να φαίνονται μόνο τα αποτελέσματα.",
+          steps: [
+            { t: "Στο Desktop ξεκίνα το hello.bat με τη γραμμή @echo off", hint: ["cd Desktop", "echo @echo off > hello.bat"], check: function (s) { return /^@echo off$/i.test((fileLines(s, ["Desktop", "hello.bat"])[0] || "").trim()); } },
+            { t: "Πρόσθεσε τρεις εντολές: ένα μήνυμα, την έκδοση και την ημερομηνία", hint: ["echo echo Kalimera! >> hello.bat", "echo ver >> hello.bat", "echo date /t >> hello.bat"], check: function (s) { return fileLines(s, ["Desktop", "hello.bat"]).map(function (l) { return l.trim(); }).filter(Boolean).length >= 4; } },
+            { t: "Δες τι έγραψες", hint: ["type hello.bat"], check: function (s) { return H(s, /^type\s+hello\.bat/i); } },
+            { t: "Τρέξ' το", hint: ["hello"], check: function (s) { return (s.bats || []).some(function (b) { return b.name === "hello.bat"; }); } }
+          ],
+          asks: [
+            { q: "Τι κάνει η γραμμή @echo off;", a: [/δεν (φαιν|εμφαν|δειχν|τυπων|βλεπ)/, /κρυβ|κρυφ/] },
+            { q: "Η κατάληξη ενός αρχείου δέσμης", a: [".bat", "bat", ".cmd"] },
+            { q: "Πόσες εντολές έτρεξε το hello.bat; (χωρίς το @echo off)", a: function (s) { var b = (s.bats || []).filter(function (x) { return x.name === "hello.bat"; }).pop(); return b ? [String(b.lines.length)] : ["3"]; } }
+          ] },
+        { id: "e5l", type: "term", os: "windows", tag: "Ο στόχος", title: "Το έργο web με ένα .bat",
+          desc: "Το σενάριο της ημέρας: ένα .bat που στήνει μόνο του τη δομή ενός έργου web: φάκελος mysite με υποφακέλους css, js, images και ένα άδειο index.html. Μέσα στο echo, το ^> γράφει το σύμβολο > στο αρχείο, αντί να το εκτελέσει.",
+          steps: [
+            { t: "Στο Desktop γράψε το site.bat με @echo off και τρία md (css, js, images μέσα στο mysite)", hint: ["cd Desktop", "echo @echo off > site.bat", "echo md mysite\\css >> site.bat", "echo md mysite\\js >> site.bat", "echo md mysite\\images >> site.bat"], check: function (s) { return fileLines(s, ["Desktop", "site.bat"]).filter(function (l) { return /^\s*(md|mkdir)\s+mysite\\/i.test(l); }).length >= 3; } },
+            { t: "Πρόσθεσε τη γραμμή που φτιάχνει το άδειο index.html και ένα μήνυμα «Etoimo!»", hint: ["echo type nul ^> mysite\\index.html >> site.bat", "echo echo Etoimo! >> site.bat"], check: function (s) { return fileLines(s, ["Desktop", "site.bat"]).some(function (l) { return /index\.html/i.test(l) && />/.test(l); }); } },
+            { t: "Τρέξε το site.bat", hint: ["site"], check: function (s) { return (s.bats || []).some(function (b) { return b.name === "site.bat"; }) && ["css", "js", "images"].every(function (d) { return isDir(s, ["Desktop", "mysite", d]); }) && !!node(s, ["Desktop", "mysite", "index.html"]); } },
+            { t: "Το παραδοτέο: γράψε το δέντρο του mysite στο tree.txt", hint: ["tree mysite /f > tree.txt"], check: function (s) { return fileHas(s, ["Desktop", "tree.txt"], "index.html"); } }
+          ],
+          asks: [
+            { q: "Πόσους υποφακέλους έχει το mysite;", num: 3 },
+            { q: "Ποιο αρχείο φαίνεται μέσα στο mysite στο tree.txt;", a: ["index.html"] },
+            { q: "Αν τρέξεις ξανά το site.bat, τι λέει το md για τους φακέλους; (στα αγγλικά)", a: [/already exists/] }
+          ] },
+        { id: "e5m", type: "quiz", tag: "Δύσκολο", title: "Τι θα γίνει αν…;",
+          desc: "Πρόβλεψε τι θα κάνει κάθε εντολή ΠΡΙΝ τη δοκιμάσεις. Μετά, αν θες, δοκίμασέ τες στο ελεύθερο τερματικό.",
+          hint: "Το del σβήνει μόνο αρχεία. Το rd σβήνει μόνο άδειους φακέλους. Στο ren γράφεις μόνο το νέο όνομα. Το md φτιάχνει όλη τη διαδρομή.",
+          items: [
+            { q: "del *.* μέσα στο Desktop", opts: ["σβήνει όλα τα αρχεία του Desktop", "σβήνει και τους φακέλους του", "δεν κάνει τίποτα"], a: "σβήνει όλα τα αρχεία του Desktop", why: "Το del σβήνει μόνο αρχεία. Στα αληθινά Windows ρωτά πρώτα «Are you sure (Y/N)?»." },
+            { q: "rd Archeio, ενώ ο Archeio έχει αρχεία", opts: ["σβήνεται με τα αρχεία", "βγάζει «The directory is not empty.»", "σβήνει μόνο τα αρχεία"], a: "βγάζει «The directory is not empty.»", why: "Το σκέτο rd σβήνει μόνο άδειους φακέλους. Θέλει rd /s." },
+            { q: "md a\\b\\c, ενώ δεν υπάρχει ούτε ο a", opts: ["φτιάχνει και τους τρεις", "λάθος: δεν υπάρχει ο a", "φτιάχνει μόνο τον c"], a: "φτιάχνει και τους τρεις", why: "Το md φτιάχνει όλη τη διαδρομή μαζί." },
+            { q: "ren ergasia.txt Archeio\\nea.txt", opts: ["το μετακινεί και το μετονομάζει", "βγάζει λάθος σύνταξης", "φτιάχνει τον φάκελο Archeio"], a: "βγάζει λάθος σύνταξης", why: "Στο ren γράφεις ΜΟΝΟ το νέο όνομα. Για αλλαγή θέσης χρειάζεται move." },
+            { q: "xcopy Documents Backup\\Documents χωρίς /i (ο προορισμός δεν υπάρχει)", opts: ["ρωτά αν είναι αρχείο ή φάκελος (F/D)", "αντιγράφει κανονικά", "βγάζει λάθος και σταματά"], a: "ρωτά αν είναι αρχείο ή φάκελος (F/D)", why: "Το /i του λέει από πριν ότι ο προορισμός είναι φάκελος." },
+            { q: "dir test?.tmp, ενώ υπάρχουν test1.tmp και test10.tmp", opts: ["δείχνει μόνο το test1.tmp", "δείχνει και τα δύο", "δεν δείχνει κανένα"], a: "δείχνει μόνο το test1.tmp", why: "Το ? ταιριάζει με ακριβώς έναν χαρακτήρα. Το 10 είναι δύο." }
+          ] },
+        { id: "e5n", type: "quiz", tag: "Εύκολο", title: "Από το cmd στο PowerShell",
+          desc: "Στο PowerShell οι εντολές λέγονται cmdlets και γράφονται «Ρήμα-Ουσιαστικό». Βρες ποιο cmdlet κάνει τη δουλειά κάθε παλιάς εντολής.",
+          hint: "Get = πάρε/δείξε, Set = όρισε, Copy = αντίγραψε, Remove = σβήσε, Stop = σταμάτα. ChildItem = τα περιεχόμενα ενός φακέλου, Content = το περιεχόμενο αρχείου.",
+          opts: ["Get-ChildItem", "Set-Location", "Get-Content", "Copy-Item", "Remove-Item", "Get-Process", "Stop-Process"],
+          items: [
+            { q: "dir", a: "Get-ChildItem" }, { q: "cd", a: "Set-Location" }, { q: "type", a: "Get-Content" }, { q: "copy", a: "Copy-Item" },
+            { q: "del", a: "Remove-Item" }, { q: "tasklist", a: "Get-Process" }, { q: "taskkill", a: "Stop-Process" }
+          ] },
+        { id: "e5o", type: "term", os: "windows", tag: "Για το σπίτι", title: "Το backup.bat",
+          desc: "Ένα .bat που κάνει αντίγραφο ασφαλείας με ένα «κλικ»: τα Documents με xcopy, τις Εικόνες με robocopy, και στο τέλος δείχνει το δέντρο. Γράψ' το στον φάκελό σου (C:\\Users\\mathitis) και τρέξ' το δύο φορές.",
+          steps: [
+            { t: "Γράψε το backup.bat με @echo off, xcopy, robocopy και tree", hint: ["echo @echo off > backup.bat", "echo xcopy Documents Backup\\Documents /e /i /y >> backup.bat", "echo robocopy Pictures Backup\\Pictures /e >> backup.bat", "echo tree Backup /f >> backup.bat"], check: function (s) { var l = fileLines(s, ["backup.bat"]); return l.some(function (x) { return /^\s*xcopy\b/i.test(x); }) && l.some(function (x) { return /^\s*robocopy\b/i.test(x); }); } },
+            { t: "Τρέξ' το", hint: ["backup"], check: function (s) { return (s.bats || []).some(function (b) { return b.name === "backup.bat"; }) && !!node(s, ["Backup", "Documents", "sxolio.txt"]) && !!node(s, ["Backup", "Pictures", "diakopes.png"]); } },
+            { t: "Τρέξ' το ξανά και δες τι κάνει τώρα το robocopy", hint: ["backup"], check: function (s) { return (s.bats || []).filter(function (b) { return b.name === "backup.bat"; }).length >= 2; } }
+          ],
+          asks: [
+            { q: "Πόσα αρχεία έχει συνολικά ο φάκελος Backup;", num: 3 },
+            { q: "Στο 2ο τρέξιμο, πόσα αρχεία ΑΝΤΕΓΡΑΨΕ (Copied) το robocopy;", num: 0 }
+          ] }
+      ]
     }
   ];
 
@@ -2420,7 +2844,8 @@
   var DECKS = {
     "1t": ["Θεωρία 1", "files/markopoulo/sls-01-theoria.pdf"], "1p": ["Πρακτικό 1", "files/markopoulo/sls-01-praktiko.pdf"],
     "2t": ["Θεωρία 2", "files/markopoulo/sls-02-theoria.pdf"], "2p": ["Πρακτικό 2", "files/markopoulo/sls-02-praktiko.pdf"],
-    "3": ["Εργαστήριο 3", "files/markopoulo/sls-03-fcfs-sjf.pdf?v=2"], "4": ["Εργαστήριο 4", "files/markopoulo/sls-04-rr-srtf-priority.pdf"]
+    "3": ["Εργαστήριο 3", "files/markopoulo/sls-03-fcfs-sjf.pdf?v=2"], "4": ["Εργαστήριο 4", "files/markopoulo/sls-04-rr-srtf-priority.pdf"],
+    "5": ["Εργαστήριο 5", "files/markopoulo/sls-05-cmd.pdf"]
   };
   var REFS = {
     e1a: ["1t", [6, 9]], e1b: ["1t", [7]], e1c: ["1p", [6]], e1d: ["1p", [10]], e1e: ["1p", [16]], e1f: ["1t", [10, 11]], e1g: ["1t", [13, 14]], e1h: ["1t", [8]],
@@ -2432,7 +2857,9 @@
     e4a: ["4", [3]], e4b: ["4", [5, 6, 7, 8]], e4c: ["4", [6, 7, 10]], e4d: ["4", [13, 14]], e4e: ["4", [13, 16]], e4f: ["4", [18, 19]], e4g: ["4", [21, 22]], e4h: ["4", [24]], e4i: ["4", [26]], e4j: ["4", [12, 28]],
     e4k: ["4", [30]], e4l: ["4", [30]], e4m: ["4", [32]], e4n: ["4", [32]], e4o: ["4", [34]], e4p: ["4", [34]],
     r34a: ["4", [3, 37]], r34b: ["3", [6, 15]], r34c: ["3", [10, 15]], r34d: ["4", [6, 7]], r34e: ["4", [13]], r34f: ["4", [24, 25]], r34g: ["4", [18]], r34h: ["4", [21]],
-    r34i: ["4", [3, 25]], r34j: ["4", [6, 7]], r34k: ["4", [13]], r34l: ["4", [26, 27]], r34m: ["3", [28]], r34n: ["3", [30]], r34o: ["4", [6, 7]]
+    r34i: ["4", [3, 25]], r34j: ["4", [6, 7]], r34k: ["4", [13]], r34l: ["4", [26, 27]], r34m: ["3", [28]], r34n: ["3", [30]], r34o: ["4", [6, 7]],
+    e5a: ["5", [3]], e5b: ["5", [5, 7]], e5c: ["5", [7]], e5d: ["5", [5]], e5e: ["5", [9]], e5f: ["5", [10]], e5g: ["5", [12]], e5h: ["5", [13]],
+    e5i: ["5", [15]], e5j: ["5", [17]], e5k: ["5", [19]], e5l: ["5", [19]], e5m: ["5", [21]], e5n: ["5", [23]], e5o: ["5", [25]]
   };
   function refHTML(e) {
     var r = REFS[e.id], d = r && DECKS[r[0]];

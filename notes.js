@@ -137,6 +137,15 @@ window.SITE = {
           pptx: "files/markopoulo/sls-04-rr-srtf-priority.pptx",
           visible: true,
         },
+        {
+          title: "Εργαστήριο 5 · MS-DOS και Γραμμή εντολών (cmd)",
+          kind: "Θεωρία + ασκήσεις",
+          date: "2026-11-10",
+          desc: "Από το MS-DOS στο cmd και το PowerShell, σε 10 μικρά βήματα: διαδρομές, dir/md/rd/tree, copy/move/ren/del, μασκές * και ?, attrib, xcopy και robocopy, εργαλεία συστήματος (systeminfo, ipconfig /all, driverquery, sfc) και αρχεία .bat. Το έργο web με ένα .bat ως παραδοτέο, και οι 15 ασκήσεις με τις λύσεις τους.",
+          pdf: "files/markopoulo/sls-05-cmd.pdf",
+          pptx: "files/markopoulo/sls-05-cmd.pptx",
+          visible: true,
+        },
       ],
     },
     {
