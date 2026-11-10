@@ -141,7 +141,7 @@ def lab_badge(s, nums):
     p = tf.paragraphs[0]
     run(p, "ΣΤΟ ΕΡΓΑΣΤΗΡΙΟ", 8, GOLD, MONO, bold=True, spc=80)
     p = tf.add_paragraph()
-    txt = ("Άσκηση " if len(nums) == 1 else "Ασκήσεις ") + " · ".join(str(n) for n in nums)
+    txt = ("Άσκηση " if len(nums) == 1 else "Ασκήσεις ") + (f"{nums[0]}–{nums[-1]}" if len(nums) > 3 else " · ".join(str(n) for n in nums))
     run(p, txt, 13, INK, SANS, bold=True)
 
 def subtitle(s, text, y=1261872):

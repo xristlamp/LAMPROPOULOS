@@ -13,6 +13,8 @@ $map = @(
   @("ΣΑΕΚ ΜΑΡΚΟΠΟΥΛΟΥ\ΣΛΣ_Εργαστήριο03_Χρονοδρομολόγηση_FCFS_SJF.pptx", "markopoulo\sls-03-fcfs-sjf"),
   @("ΣΑΕΚ ΜΑΡΚΟΠΟΥΛΟΥ\ΣΛΣ_Εργαστήριο04_Χρονοδρομολόγηση_SRTF_RR_Priority.pptx", "markopoulo\sls-04-rr-srtf-priority"),
   @("ΣΑΕΚ ΜΑΡΚΟΠΟΥΛΟΥ\ΣΛΣ_Εργαστήριο05_MS-DOS_και_Γραμμή_εντολών.pptx",     "markopoulo\sls-05-cmd"),
+  @("ΣΑΕΚ ΜΑΡΚΟΠΟΥΛΟΥ\ΣΛΣ_Εργαστήριο06_Windows_γραφικό_περιβάλλον.pptx",   "markopoulo\sls-06-windows-gui"),
+  @("ΣΑΕΚ ΜΑΡΚΟΠΟΥΛΟΥ\ΣΛΣ_Εργαστήριο07_Βλάβες_και_συντήρηση_Windows.pptx", "markopoulo\sls-07-vlaves"),
   @("ΣΑΕΚ_GLYFADA\Μάθημα01_Γνωριμία_με_την_Python_v2.pptx",              "glyfada\python-01-gnorimia"),
   @("ΣΑΕΚ_GLYFADA\Μάθημα02_if_while_for.pptx",                           "glyfada\python-02-if-while-for"),
   @("ΣΑΕΚ_GLYFADA\Μάθημα03_Λίστες_και_πλειάδες_v2.pptx",                 "glyfada\python-03-listes"),

@@ -6,81 +6,24 @@
 import slides_kit as K
 from slides_kit import *
 
-# Το Εργαστήριο 5 δεν έχει δικό του αρχικό αρχείο: παίρνει την 1η διαφάνεια και το πλαίσιο από την αρχική έκδοση του 4.
-ORIG = os.path.join(os.path.expanduser("~"), "Desktop", "ΣΑΕΚ ΜΑΡΚΟΠΟΥΛΟΥ", "_πρωτότυπα_πριν_τον_εμπλουτισμό",
-                    "ΣΛΣ_Εργαστήριο04_Χρονοδρομολόγηση_SRTF_RR_Priority_v1.pptx")
-start(ORIG)
+from sls_kit import *
+
+start(ORIG_4)
 K.STEPS = 10
 N_SLIDES = 28
 DATE = "ΤΡΙΤΗ 10/11/2026"
 NEXT = "Τρίτη 24/11 (17/11 αργία)"
 
-def nxt(): return len(K.prs.slides) + 1      # αριθμός της επόμενης διαφάνειας
-
-EX = {}                                       # άσκηση → [διαφάνειες θεωρίας/εκφώνησης], διαφάνεια λύσης
-def mark(n, slide_no): EX.setdefault(n, [[], None])[0].append(slide_no)
-def mark_sol(ns, slide_no):
-    for n in ns: EX.setdefault(n, [[], None])[1] = slide_no
-
-def quiz_solution(ns, title, rows, foot, row_h=621792):
-    """λύση κουίζ: ερώτηση, σωστή απάντηση, γιατί"""
-    mark_sol(ns, nxt())
-    s = new(nxt(), "ΛΥΣΗ ΑΣΚΗΣΗΣ " + " · ".join(map(str, ns)), title)
-    table(s, L, TOP, [3931920, 2286000, W - 6217920], [["Ερώτηση", "Σωστή απάντηση", "Γιατί"]] + rows,
-          size=10.5, row_h=row_h, hl={(i + 1, 1): BLUE for i in range(len(rows))})
-    footer(s, "ΘΥΜΗΣΟΥ", foot)
-    return s
-
-PROMPT = re.compile(r"^[A-Z]:\\[^>]*>")
-def cmd_src(src):
-    """οι γραμμές χωρίς » είναι εντολές: παίρνουν μπροστά «> », εκτός αν έχουν ήδη ολόκληρο το prompt"""
-    return "\n".join(l if l.startswith("»") or not l or PROMPT.match(l) else "> " + l for l in src.strip("\n").split("\n"))
-
-def term_solution(left, right, foot, size=9):
-    """λύση ασκήσεων τερματικού: (αρ., εντολές και έξοδος, απαντήσεις) αριστερά και δεξιά.
-    Χωρίς right: ο κώδικας αριστερά, οι απαντήσεις δεξιά."""
-    ns = [left[0]] + ([right[0]] if right else [])
-    mark_sol(ns, nxt())
-    s = new(nxt(), "ΛΥΣΗ ΑΣΚΗΣ" + ("ΕΩΝ " if right else "ΗΣ ") + " · ".join(map(str, ns)), "Τι γράφεις και τι βλέπεις")
-    if right:
-        for (n, src, ans), x, w in ((left, COL_L, COL_W), (right, COL_R, COL_RW)):
-            b = code(s, x, TOP, w, cmd_src(src), size=size, tag=f"ΑΣΚΗΣΗ {n} · ΕΝΤΟΛΕΣ ΚΑΙ ΕΞΟΔΟΣ")
-            card(s, x, b + 137160, w, f"Απαντήσεις άσκησης {n}", ans, tone="gold", size=10.5)
-    else:
-        n, src, ans = left
-        code(s, COL_L, TOP, COL_W, cmd_src(src), size=size, tag=f"ΑΣΚΗΣΗ {n} · ΕΝΤΟΛΕΣ ΚΑΙ ΕΞΟΔΟΣ")
-        card(s, COL_R, TOP + 283464, COL_RW, f"Απαντήσεις άσκησης {n}", ans, tone="gold", size=11)
-    footer(s, "ΘΥΜΗΣΟΥ", foot)
-    return s
-
-def quiz_slide(n, kicker, title, intro, head, rows, foot, widths=None):
-    """διαφάνεια κουίζ: εκφώνηση και πίνακας ερωτήσεων (οι απαντήσεις στην επόμενη)"""
-    mark(n, nxt())
-    s = new(nxt(), kicker, title, lab=[n])
-    y = prompt(s, L, TOP, W, intro) + 182880
-    table(s, L, y, widths or [6400800, W - 6400800], [head] + rows, size=11.5, row_h=429768)
-    footer(s, "ΒΟΗΘΕΙΑ", foot)
-    return s
-
 # 1 · τίτλος
-for sh in K.prs.slides[0].shapes:
-    if not sh.has_text_frame: continue
-    t = sh.text_frame.text
-    paras = sh.text_frame.paragraphs
-    def put(p, text):
-        p.runs[0].text = text
-        for x in p.runs[1:]: x.text = ""
-    if t.startswith("ΕΡΓΑΣΤΗΡΙΟ 4"): put(paras[0], f"ΕΡΓΑΣΤΗΡΙΟ 5 · ΕΝΟΤΗΤΑ 2.1.Β.3 · {DATE}")
-    elif t.startswith("Αλγόριθμοι"): put(paras[0], "Η Γραμμή"); put(paras[1], "εντολών")
-    elif t.startswith("Χρονοδρομολόγηση"): put(paras[0], "MS-DOS και cmd: φάκελοι, αρχεία, εργαλεία συστήματος και αρχεία .bat")
-    elif t.startswith("Παιχνίδι"): put(paras[0], f"Θεωρία σε {K.STEPS} μικρά βήματα + 15 ασκήσεις με λύσεις · το έργο web με ένα .bat · {N_SLIDES} διαφάνειες")
+title_slide4(f"ΕΡΓΑΣΤΗΡΙΟ 5 · ΕΝΟΤΗΤΑ 2.1.Β.3 · {DATE}", "Η Γραμμή", "εντολών",
+             "MS-DOS και cmd: φάκελοι, αρχεία, εργαλεία συστήματος και αρχεία .bat",
+             f"Θεωρία σε {K.STEPS} μικρά βήματα + 15 ασκήσεις με λύσεις · το έργο web με ένα .bat · {N_SLIDES} διαφάνειες")
 
 # 2 · οι ασκήσεις (ο πίνακας μπαίνει στο τέλος)
-overview = new(nxt(), "ΠΩΣ ΔΟΥΛΕΥΟΥΜΕ", "Οι 15 ασκήσεις του εργαστηρίου")
-footer(overview, "ΠΩΣ", "Διαβάζεις το βήμα → λύνεις στο site την άσκηση της ετικέτας **ΣΤΟ ΕΡΓΑΣΤΗΡΙΟ** → ελέγχεις με τη **λύση** που ακολουθεί.")
+overview = overview_slide(15)
 
 # βήμα 1: από το MS-DOS στο cmd
-mark(1, nxt())
+mark(1)
 s = new(nxt(), step(1, "ΑΠΟ ΤΟ MS-DOS ΣΤΟ CMD"), "Η Γραμμή εντολών, από το 1981 ως σήμερα", lab=[1])
 table(s, COL_L, TOP, [914400, COL_W - 914400], [
     ["Έτος", "Τι έγινε"],
@@ -110,7 +53,7 @@ quiz_solution([1], "Από το MS-DOS στο cmd: λύση", [
 ], "Μια εντολή = **όνομα** + **ορίσματα** + **παράμετροι** (με / στα Windows, με - στο Linux).", row_h=548640)
 
 # βήμα 2: διαδρομές
-mark(2, nxt()); mark(4, nxt())
+mark(2, 4)
 s = new(nxt(), step(2, "ΔΙΑΔΡΟΜΕΣ"), "Πού βρίσκομαι και πώς πάω αλλού", lab=[2, 4])
 y = prompt(s, L, TOP, W, "Το prompt **C:\\Users\\mathitis>** σου λέει πού βρίσκεσαι. Μια διαδρομή είναι **απόλυτη** αν ξεκινά από τη ρίζα "
            "(C:\\ ή σκέτο \\) και **σχετική** αν ξεκινά από εκεί που είσαι.", tag="Η ΙΔΕΑ") + 182880
@@ -143,7 +86,7 @@ quiz_solution([4], "Απόλυτη ή σχετική: λύση", [
 ], "Κοίτα μόνο την **αρχή** της διαδρομής: C:\\ ή \\ = απόλυτη · όνομα, . ή .. = σχετική.", row_h=548640)
 
 # βήμα 3: φάκελοι
-mark(2, nxt()); mark(3, nxt())
+mark(2, 3)
 s = new(nxt(), step(3, "ΦΑΚΕΛΟΙ"), "dir, md, rd, tree, cls", lab=[2, 3])
 code(s, COL_L, TOP, COL_W, '''
 dir                  # τι έχει ο φάκελος
@@ -191,7 +134,7 @@ rd /s Proxeiro
     "Το **/q** (quiet) στο rd /s σβήνει χωρίς ερώτηση: χρήσιμο σε .bat, επικίνδυνο στα χέρια μας.")
 
 # βήμα 4: αρχεία
-mark(5, nxt())
+mark(5)
 s = new(nxt(), step(4, "ΑΡΧΕΙΑ"), "copy, move, ren, type, del", lab=[5])
 code(s, COL_L, TOP, COL_W, '''
 copy ergasia.txt ergasia_old.txt   # αντίγραφο
@@ -212,7 +155,7 @@ table(s, COL_R, TOP, [1188720, (COL_RW - 1188720) * 3 // 5, (COL_RW - 1188720) *
 footer(s, "ΣΤΟ REN", "Γράφεις **μόνο το νέο όνομα**, όχι διαδρομή: ren Archeio\\a.txt b.txt (και **όχι** ...Archeio\\b.txt).")
 
 # βήμα 5: μασκές
-mark(6, nxt())
+mark(6)
 s = new(nxt(), step(5, "ΜΑΣΚΕΣ"), "Τα μπαλαντέρ * και ?", lab=[6])
 y = prompt(s, L, TOP, W, "Το **\\*** ταιριάζει με **όσους χαρακτήρες θες** (και κανέναν). Το **?** ταιριάζει με **ακριβώς έναν**. "
            "Με μια μάσκα, μία εντολή δουλεύει σε πολλά αρχεία μαζί.", tag="Η ΙΔΕΑ") + 182880
@@ -268,7 +211,7 @@ dir /b
     "Το **echo κείμενο > αρχείο** φτιάχνει αρχείο κειμένου. Το **>>** προσθέτει στο τέλος του.")
 
 # βήμα 6: attrib
-mark(7, nxt())
+mark(7)
 s = new(nxt(), step(6, "ΧΑΡΑΚΤΗΡΙΣΤΙΚΑ"), "attrib: κρυφό και μόνο για ανάγνωση", lab=[7])
 code(s, COL_L, TOP, COL_W, '''
 attrib mystiko.txt           # δες τα χαρακτηριστικά
@@ -286,7 +229,7 @@ table(s, COL_R, TOP, [731520, 1554480, COL_RW - 2286000], [
 footer(s, "ΔΕΝ ΕΙΝΑΙ ΑΣΦΑΛΕΙΑ", "Το **+H** απλώς κρύβει: όποιος γράψει **dir /a** το βλέπει. Για προστασία υπάρχουν οι λογαριασμοί και τα δικαιώματα.")
 
 # βήμα 7: αντίγραφα ασφαλείας
-mark(8, nxt())
+mark(8)
 s = new(nxt(), step(7, "ΑΝΤΙΓΡΑΦΑ ΑΣΦΑΛΕΙΑΣ"), "xcopy και robocopy", lab=[8])
 b = code(s, L, TOP, W, '''
 xcopy Documents Backup\\Documents /e /i      # όλος ο φάκελος, με τους υποφακέλους
@@ -348,7 +291,7 @@ quiz_solution([9], "Ποια εντολή κάνει τι: λύση", [[j, a, wh
               "copy = αρχεία, **xcopy** = και φάκελοι · ren = όνομα, **move** = θέση · **attrib** = χαρακτηριστικά.", row_h=484632)
 
 # βήμα 8: εργαλεία συστήματος
-mark(10, nxt())
+mark(10)
 s = new(nxt(), step(8, "ΕΡΓΑΛΕΙΑ ΣΥΣΤΗΜΑΤΟΣ"), "Ό,τι δεν δείχνει εύκολα το GUI", lab=[10])
 table(s, COL_L, TOP, [2743200, COL_W + 457200 - 2743200], [
     ["Εντολή", "Τι δείχνει ή κάνει"],
@@ -387,7 +330,7 @@ taskkill /im paixnidi.exe /f
     None, "Το **| find** κρατά μόνο τις γραμμές που περιέχουν τη λέξη: η λέξη πάει **σε εισαγωγικά**.")
 
 # βήμα 9: αρχεία .bat
-mark(11, nxt()); mark(12, nxt())
+mark(11, 12)
 s = new(nxt(), step(9, "ΑΡΧΕΙΑ ΔΕΣΜΗΣ (.BAT)"), "Γράφεις μία φορά, τρέχει όσες θες", lab=[11, 12])
 b = code(s, COL_L, TOP, COL_W, '''
 @echo off
@@ -462,7 +405,7 @@ quiz_solution([13], "Τι θα γίνει αν: λύση", [[q, a, why] for q, a
               "Πριν από μια επικίνδυνη εντολή, τρέξε **dir** με την ίδια διαδρομή ή μάσκα.", row_h=576072)
 
 # βήμα 10: PowerShell
-mark(14, nxt())
+mark(14)
 s = new(nxt(), step(10, "POWERSHELL"), "Το νέο κέλυφος: PowerShell", lab=[14])
 table(s, COL_L, TOP, [1463040, 2286000, COL_W - 3749040 + 457200], [
     ["cmd", "PowerShell", "Linux (bash)"],
@@ -486,7 +429,7 @@ quiz_solution([14], "Από το cmd στο PowerShell: λύση", [
 ], "Στο PowerShell το **Get-Help** (π.χ. Get-Help Get-Process) είναι το /? του cmd.", row_h=502920)
 
 # άσκηση 15: για το σπίτι
-mark(15, nxt())
+mark(15)
 s = new(nxt(), "ΑΣΚΗΣΗ 15 · ΓΙΑ ΤΟ ΣΠΙΤΙ", "Το backup.bat", lab=[15])
 y = prompt(s, L, TOP, W, "Ένα .bat που κάνει αντίγραφο ασφαλείας με ένα «κλικ»: τα **Documents** με xcopy, τις **Εικόνες** με robocopy, "
            "και στο τέλος δείχνει το δέντρο. Γράψ' το στον φάκελό σου και τρέξ' το **δύο φορές**.") + 182880
@@ -565,9 +508,7 @@ NAMES = ["Από το MS-DOS στο cmd", "Περπάτημα στους φακ�
          "Τι θα γίνει αν…;", "Από το cmd στο PowerShell", "Το backup.bat"]
 LEVELS = ["Εύκολο", "Εύκολο", "Εύκολο", "Εύκολο", "Μέτριο", "Μέτριο", "Μέτριο", "Μέτριο",
           "Μέτριο", "Μέτριο", "Εύκολο", "Ο στόχος", "Δύσκολο", "Εύκολο", "Για το σπίτι"]
-lab_overview(overview, [(n, NAMES[n - 1], LEVELS[n - 1], f"{EX[n][0][-1]} → {EX[n][1]}") for n in range(1, 16)])
-tf = box(overview, L, 5577840, W, 274320, MSO_ANCHOR.MIDDLE)
-rich(tf.paragraphs[0], "Στήλη «Διαφάνεια»: **εκφώνηση → λύση**.", 11, MUTED)
+fill_overview(overview, NAMES, LEVELS)
 
 finish("ΣΛΣ_Εργαστήριο05_MS-DOS_και_Γραμμή_εντολών.pptx", N_SLIDES, "ΣΑΕΚ ΜΑΡΚΟΠΟΥΛΟΥ")
-print("REFS:", ", ".join(f'e5{"abcdefghijklmno"[n - 1]}: ["5", {sorted(set(EX[n][0]))}]' for n in range(1, 16)))
+print_refs(5, 15)

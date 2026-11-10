@@ -50,6 +50,39 @@
   function F(x, sz) { return { t: "f", x: x || "", sz: sz, m: OLD }; }
   function fsize(n) { return n.t === "d" ? 4096 : n.sz != null ? n.sz : bytes(n.x); }
 
+  function hid(n) { n.a = { h: true }; return n; }
+  // τα «σκουπίδια» του %TEMP% (Εργαστήριο 7) · lock = το χρησιμοποιεί πρόγραμμα, δεν σβήνεται
+  function TEMP_FILES() {
+    function T_(sz, lock) { var f = F("", sz); if (lock) f.lock = 1; return f; }
+    return { "~DF8C2A.tmp": T_(1048576), "setup_7f3a.tmp": T_(268435456), "vscode_update.exe": T_(98566144), "Teams_cache.dat": T_(524288000),
+      "msedge_crash.dmp": T_(734003200), "gpu_cache.bin": T_(805306368), "wct4A2.tmp": T_(2097152), "dxsetup.log": T_(40960),
+      "chrome_installer.log": T_(524288), "~WRS0001.tmp": T_(65536, 1), "MpCmdRun.log": T_(131072, 1), "7zS4A21": D({ "setup.ini": F("[setup]\n") }) };
+  }
+  var DISK_SIZE = 255362215936, DISK_FREE = 18740224000;   // δίσκος C: 237 GB με μόλις 17,4 GB ελεύθερα
+  // εφαρμογές για το winget: id, όνομα, έκδοση, διαθέσιμη (για αναβάθμιση), εκδότης, φάκελος, αρχεία
+  var WINGET = [
+    ["7zip.7zip", "7-Zip", "24.08", "", "Igor Pavlov", "7-Zip", ["7z.exe", "7zFM.exe", "7-zip.dll"], "https://www.7-zip.org/a/7z2408-x64.exe", "1.56 MB"],
+    ["VideoLAN.VLC", "VLC media player", "3.0.21", "", "VideoLAN", "VideoLAN\\VLC", ["vlc.exe"], "https://get.videolan.org/vlc/3.0.21/win64/vlc-3.0.21-win64.exe", "42.1 MB"],
+    ["Notepad++.Notepad++", "Notepad++", "8.7.1", "", "Notepad++ Team", "Notepad++", ["notepad++.exe"], "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.7.1/npp.8.7.1.Installer.x64.exe", "5.47 MB"],
+    ["GIMP.GIMP", "GIMP", "2.10.38", "", "The GIMP Team", "GIMP 2", ["bin\\gimp-2.10.exe"], "https://download.gimp.org/gimp/v2.10/windows/gimp-2.10.38-setup.exe", "312 MB"],
+    ["Mozilla.Firefox", "Mozilla Firefox", "132.0.1", "", "Mozilla", "Mozilla Firefox", ["firefox.exe"], "https://download.mozilla.org/?product=firefox-132.0.1-msi-SSL&os=win64", "60.2 MB"]
+  ];
+  function winApps() {   // ήδη εγκατεστημένες: [id, όνομα, έκδοση, διαθέσιμη αναβάθμιση]
+    return [["Google.Chrome", "Google Chrome", "130.0.6723.117", "131.0.6778.86"], ["Microsoft.Edge", "Microsoft Edge", "130.0.2849.80", ""],
+      ["Microsoft.VisualStudioCode", "Microsoft Visual Studio Code", "1.94.2", "1.95.2"], ["Spotify.Spotify", "Spotify", "1.2.48.405", ""], ["Discord.Discord", "Discord", "1.0.9171", "1.0.9172"]];
+  }
+  function winServices() {
+    return { audiosrv: ["Windows Audio", "STOPPED"], spooler: ["Print Spooler", "RUNNING"], wuauserv: ["Windows Update", "RUNNING"],
+      windefend: ["Microsoft Defender Antivirus Service", "RUNNING"], dhcp: ["DHCP Client", "RUNNING"], themes: ["Themes", "RUNNING"] };
+  }
+  var STARTUP = [["OneDrive", '"C:\\Users\\' + USER + '\\AppData\\Local\\Microsoft\\OneDrive\\OneDrive.exe" /background'],
+    ["Spotify", '"C:\\Users\\' + USER + '\\AppData\\Roaming\\Spotify\\Spotify.exe" --autostart --minimized'],
+    ["Discord", '"C:\\Users\\' + USER + '\\AppData\\Local\\Discord\\Update.exe" --processStart Discord.exe'],
+    ["Teams", '"C:\\Users\\' + USER + '\\AppData\\Local\\Microsoft\\Teams\\Update.exe" --processStart "Teams.exe"'],
+    ["SecurityHealth", "%windir%\\system32\\SecurityHealthSystray.exe"]];
+  var POWER = [["381b4222-f694-41f0-9685-ff5bb260df2e", "Balanced", "SCHEME_BALANCED"], ["8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", "High performance", "SCHEME_MIN"],
+    ["a1841308-3541-4fab-bc81-f71556f20b4a", "Power saver", "SCHEME_MAX"]];
+
   function winFS() {
     return D({
       "Program Files": D({ "Google": D({ "Chrome": D({ "chrome.exe": F("", 2874368) }) }), "Microsoft VS Code": D({ "Code.exe": F("", 158392320) }) }),
@@ -58,7 +91,8 @@
           "Desktop": D({ "ergasia.txt": F("Εργασία: Γράψε 3 λειτουργικά συστήματα για κινητά.\n"), "Chrome.lnk": F("", 2312) }),
           "Documents": D({ "sxolio.txt": F("Το ΛΣ είναι ο «μεσάζων» ανάμεσα στον χρήστη, τις εφαρμογές και το υλικό.\n"), "programma.txt": F("Τρίτη 16:25-18:50  Σύγχρονα Λειτουργικά Συστήματα\n") }),
           "Downloads": D({ "setup.exe": F("", 4194304), "foto.jpg": F("", 245760) }),
-          "Music": D(), "Pictures": D({ "diakopes.png": F("", 1048576) })
+          "Music": D(), "Pictures": D({ "diakopes.png": F("", 1048576) }),
+          "AppData": hid(D({ "Local": D({ "Temp": D(TEMP_FILES()) }), "Roaming": D() }))   // κρυφός, όπως στα αληθινά Windows
         }),
         "Public": D()
       }),
@@ -206,8 +240,10 @@
 
   // ================= WINDOWS =================
   var WIN_HELP = [
+    ["ASSOC", "Ποιο είδος αρχείου είναι κάθε κατάληξη", "assoc .txt  ·  assoc .zip"],
     ["ATTRIB", "Δείχνει ή αλλάζει χαρακτηριστικά αρχείου (+R μόνο ανάγνωση, +H κρυφό, - για να βγει)", "attrib  ·  attrib +h mystiko.txt  ·  attrib -h -r mystiko.txt"],
     ["CALL", "Τρέχει ένα αρχείο δέσμης (.bat)", "call site.bat  (ή σκέτο: site)"],
+    ["CHKDSK", "Ελέγχει τον δίσκο για λάθη (θέλει διαχειριστή)", "chkdsk"],
     ["CD", "Δείχνει ή αλλάζει τον τρέχοντα φάκελο", "cd Desktop  ·  cd ..  ·  cd \\"],
     ["CLS", "Καθαρίζει την οθόνη", "cls"],
     ["COLOR", "Αλλάζει χρώματα (φόντο + γράμματα)", "color 0a"],
@@ -222,15 +258,20 @@
     ["IPCONFIG", "Ρυθμίσεις δικτύου (διεύθυνση IP)", "ipconfig"],
     ["MKDIR", "Δημιουργεί φάκελο (ή MD)", "mkdir SAEK"],
     ["MOVE", "Μετακινεί αρχείο", "move hello.txt ..\\Documents"],
+    ["NET", "Υπηρεσίες και χρήστες", "net start  ·  net user"],
     ["PING", "Ελέγχει αν απαντά ένας υπολογιστής στο δίκτυο", "ping google.com"],
     ["POWERSHELL", "Το νεότερο κέλυφος των Windows (cmdlets)", "powershell"],
+    ["POWERCFG", "Τα σχέδια τροφοδοσίας (ενέργειας)", "powercfg /list  ·  powercfg /setactive SCHEME_MIN"],
     ["REN", "Μετονομάζει αρχείο (με μάσκα αλλάζει καταλήξεις)", "ren hello.txt geia.txt  ·  ren *.txt *.bak"],
     ["RMDIR", "Διαγράφει φάκελο (ή RD, /S με τα περιεχόμενα)", "rd SAEK"],
     ["ROBOCOPY", "Αντιγράφει φακέλους και κρατά σύνοψη (αντίγραφα ασφαλείας)", "robocopy Pictures Backup\\Pictures /e"],
+    ["SC", "Η κατάσταση μιας υπηρεσίας (service)", "sc query audiosrv"],
     ["SFC", "Ελέγχει τα αρχεία συστήματος (θέλει διαχειριστή)", "sfc /scannow"],
+    ["SHUTDOWN", "Σβήσιμο / επανεκκίνηση (/S, /R, /O για Ασφαλή λειτουργία)", "shutdown /r /o"],
     ["SORT", "Ταξινομεί τις γραμμές αρχείου (/R αντίστροφα, /+N από τον χαρακτήρα N)", "sort procs.txt"],
     ["START", "Ξεκινά πρόγραμμα (/LOW, /HIGH κ.λπ. για προτεραιότητα)", "start notepad  ·  start /low notepad"],
     ["SYSTEMINFO", "Πληροφορίες για το ΛΣ και το υλικό", "systeminfo"],
+    ["TAR", "Συμπίεση και αποσυμπίεση (-a -c φτιάχνει ZIP, -t δείχνει, -x βγάζει)", "tar -a -c -f ergasies.zip Documents  ·  tar -tf ergasies.zip"],
     ["TASKKILL", "Τερματίζει διεργασία (/IM όνομα ή /PID αριθμός, /F αναγκαστικά)", "taskkill /im notepad.exe"],
     ["TASKLIST", "Δείχνει τις διεργασίες που τρέχουν (/V, /FI φίλτρο)", "tasklist"],
     ["TIME", "Δείχνει την ώρα", "time /t"],
@@ -238,14 +279,15 @@
     ["TYPE", "Δείχνει το περιεχόμενο αρχείου κειμένου", "type ergasia.txt"],
     ["VER", "Η έκδοση των Windows", "ver"],
     ["WHOAMI", "Ποιος χρήστης είσαι", "whoami"],
-    ["WMIC", "Πληροφορίες και προτεραιότητα διεργασιών", 'wmic process where name="notepad.exe" get name,processid,priority'],
+    ["WMIC", "Πληροφορίες διεργασιών, εκκίνησης και δίσκων (process, startup, logicaldisk)", 'wmic process where name="notepad.exe" get name,processid,priority'],
+    ["WINGET", "Εγκατάσταση εφαρμογών (search, install, list, upgrade, uninstall)", "winget search 7zip  ·  winget install 7zip.7zip"],
     ["XCOPY", "Αντιγράφει αρχεία και φακέλους (/E με τους υποφακέλους, /I ο προορισμός είναι φάκελος)", "xcopy Documents Backup\\Documents /e /i"]
   ];
   // βασική προτεραιότητα στα Windows: start /low ... /realtime  και  wmic ... call setpriority
   var WIN_PRIO = { low: 4, idle: 4, belownormal: 6, normal: 8, abovenormal: 10, high: 13, realtime: 24 };
   var WIN_PRIO_WMI = { "64": 4, "16384": 6, "32": 8, "32768": 10, "128": 13, "256": 24, idle: 4, "below normal": 6, normal: 8, "above normal": 10, "high priority": 13, realtime: 24 };
   var WIN_PRIO_NAME = { 4: "Χαμηλή (Low)", 6: "Κάτω από κανονική", 8: "Κανονική", 10: "Πάνω από κανονική", 13: "Υψηλή (High)", 24: "Πραγματικού χρόνου" };
-  var WIN_CROSS = { ls: "dir", clear: "cls", pwd: "cd", ps: "tasklist", top: "tasklist", kill: "taskkill", killall: "taskkill /im", cat: "type", rm: "del", mv: "move ή ren", cp: "copy", ifconfig: "ipconfig", ip: "ipconfig", uname: "ver", free: "systeminfo", man: "help", touch: "echo. > αρχείο.txt", sudo: "(δεν υπάρχει στα Windows)", grep: "find ή findstr", nano: "notepad", df: "dir" };
+  var WIN_CROSS = { apt: "winget", "apt-get": "winget", zip: "tar -a -c -f αρχείο.zip φάκελος", unzip: "tar -xf αρχείο.zip", systemctl: "sc query", reboot: "shutdown /r", ls: "dir", clear: "cls", pwd: "cd", ps: "tasklist", top: "tasklist", kill: "taskkill", killall: "taskkill /im", cat: "type", rm: "del", mv: "move ή ren", cp: "copy", ifconfig: "ipconfig", ip: "ipconfig", uname: "ver", free: "systeminfo", man: "help", touch: "echo. > αρχείο.txt", sudo: "(δεν υπάρχει στα Windows)", grep: "find ή findstr", nano: "notepad", df: "dir" };
   var WIN_APPS = { notepad: "notepad.exe", calc: "CalculatorApp.exe", mspaint: "mspaint.exe", chrome: "chrome.exe", explorer: "explorer.exe", code: "Code.exe", taskmgr: "Taskmgr.exe", cmd: "cmd.exe", winver: "winver.exe" };
   var CMD_COLORS = ["#0c0c0c","#0037da","#13a10e","#3a96dd","#c50f1f","#881798","#c19c00","#cccccc","#767676","#3b78ff","#16c60c","#61d6d6","#e74856","#b4009e","#f9f1a5","#f2f2f2"];
 
@@ -276,7 +318,7 @@
       else { nf++; tot += fsize(n); out.push(wdate(n.m) + lpad(commas(fsize(n)), 18) + " " + k); }
     });
     out.push(lpad(nf, 16) + " File(s) " + lpad(commas(tot), 14) + " bytes");
-    out.push(lpad(nd, 16) + " Dir(s)  187,402,240,000 bytes free");
+    out.push(lpad(nd, 16) + " Dir(s)  " + lpad(commas(s.free), 15) + " bytes free");
     return out;
   }
 
@@ -340,7 +382,7 @@
   function winTree(s, r, files) {
     var out = ["Folder PATH listing for volume Windows", "Volume serial number is 4E2A-91B7", pathStr(s, r.p).toUpperCase()];
     (function walk(n, pre, depth) {
-      var keys = Object.keys(n.c).filter(function (k) { return files || n.c[k].t === "d"; });
+      var keys = Object.keys(n.c).filter(function (k) { return (files || n.c[k].t === "d") && !hidden(n.c[k]); });
       var dirs = keys.filter(function (k) { return n.c[k].t === "d"; }), fl = keys.filter(function (k) { return n.c[k].t !== "d"; });
       fl.forEach(function (k) { out.push(pre + (dirs.length ? "│   " : "    ") + k); });
       if (fl.length) out.push(pre + (dirs.length ? "│" : ""));
@@ -475,6 +517,7 @@
       var r = at(s, resolve(s, a[0]));
       if (!r) return [E("The system cannot find the file specified.")];
       if (r.n.t === "d") return [E("Access is denied.")];
+      if (r.n.zip) return ["PK\u0003\u0004\u0014\u0000\b\u0000\b\u0000¦biY\u0000\u0000…", T("Είναι συμπιεσμένο αρχείο (ZIP). Δες τι έχει μέσα με: tar -tf " + unq(a[0]))];
       if (!r.n.x && r.n.sz) return ["MZ\u0090\u0003\u0004\u00ff\u00ff\u00b8@\u000e\u001f\u00ba\u000e\u00b4\t\u00cd!\u00b8\u0001L\u00cd!This program cannot be run in DOS mode.", T("Αυτό είναι πρόγραμμα ή εικόνα (δυαδικό αρχείο), όχι κείμενο. Γι' αυτό βλέπεις «κινέζικα».")];
       return r.n.x.replace(/\n$/, "").split("\n");
     },
@@ -491,8 +534,9 @@
         keys.forEach(function (k) {
           var n = par.n.c[k];
           if (n.t === "d") out.push(T(k + " είναι φάκελος. Για φακέλους χρησιμοποίησε: rd " + k));
+          else if (n.lock) { s.flags.lockDenied = (s.flags.lockDenied || 0) + 1; out.push(E(pathStr(s, par.p.concat(k))), E("The process cannot access the file because it is being used by another process.")); }
           else if (n.a && n.a.r) { s.flags.roDenied = 1; out.push(E(pathStr(s, par.p.concat(k))), E("Access is denied."), T("Είναι μόνο για ανάγνωση (+R). Βγάλε το R με attrib -r " + k + " και ξαναδοκίμασε.")); }
-          else delete par.n.c[k];
+          else { s.free += fsize(n); delete par.n.c[k]; }
         });
       });
       return out;
@@ -541,12 +585,22 @@
       var prio = null, rest = [];
       a.forEach(function (x) { var f = x.toLowerCase(); if (f[0] === "/") { if (WIN_PRIO[f.slice(1)]) prio = WIN_PRIO[f.slice(1)]; } else if (x !== '""') rest.push(x); });
       var k = (unq(rest[0] || "") || "cmd").toLowerCase().replace(/\.exe$/, "");
+      if (/^ms-settings:/.test(k)) { s.flags.settings = k; return [T("Άνοιξαν οι Ρυθμίσεις των Windows" + (k.length > 12 ? " στη σελίδα «" + k.slice(12) + "»" : "") + ". (Ή πάτα Win + I.)")]; }
+      if (k === "." || /^[a-z]:\\|\\/.test(k)) return winApp(s, "explorer");   // start . = άνοιξε τον φάκελο στην Εξερεύνηση
       if (!WIN_APPS[k]) return [E("Windows cannot find '" + rest[0] + "'. Make sure you typed the name correctly, and then try again.")];
       if (prio === 24) return winApp(s, k, 13).concat([T("Η προτεραιότητα πραγματικού χρόνου θέλει δικαιώματα διαχειριστή. Χωρίς αυτά τα Windows δίνουν High (13).")]);
       return winApp(s, k, prio);
     },
     wmic: function (s, a, seg) {
-      if (!/^wmic\s+process\b/i.test(seg)) return [T('Ο εξομοιωτής ξέρει το wmic process, π.χ. wmic process where name="notepad.exe" get name,processid,priority')];
+      if (/^wmic\s+startup\b/i.test(seg)) {   // ποια προγράμματα ξεκινούν μαζί με τα Windows
+        s.flags.wmicStartup = 1;
+        return wgTable(STARTUP.map(function (x) { return [x[0], x[1]]; }), ["Caption", "Command"]).filter(function (l, i) { return i !== 1; });
+      }
+      if (/^wmic\s+logicaldisk\b/i.test(seg)) {
+        s.flags.wmicDisk = 1; s.diskChecks = (s.diskChecks || 0) + 1;
+        return ["Caption  FreeSpace     Size", "C:       " + pad(s.free, 14) + DISK_SIZE, T("Σε bytes: διαίρεσε με 1.073.741.824 για GB. Ελεύθερα: " + (s.free / 1073741824).toFixed(1).replace(".", ",") + " GB από " + (DISK_SIZE / 1073741824).toFixed(0) + " GB.")];
+      }
+      if (!/^wmic\s+process\b/i.test(seg)) return [T('Ο εξομοιωτής ξέρει τα wmic process, wmic startup και wmic logicaldisk, π.χ. wmic process where name="notepad.exe" get name,processid,priority')];
       s.flags.wmic = 1;
       var list = s.procs.list.slice(), w = /\bwhere\s+\(?\s*(name|processid)\s*=\s*['"]?([^'"\s)]+)['"]?\s*\)?/i.exec(seg);
       if (w) list = list.filter(function (p) { return w[1].toLowerCase() === "name" ? p.name.toLowerCase() === w[2].toLowerCase() : p.pid === +w[2]; });
@@ -620,6 +674,200 @@
     return [T("Στα αληθινά Windows ανοίγει το PowerShell (PS C:\\Users\\" + USER + ">), το νεότερο κέλυφος. Οι εντολές του λέγονται cmdlets: Get-ChildItem (dir), Set-Location (cd), Get-Content (type), Copy-Item (copy), Get-Process (tasklist), Stop-Process (taskkill)."),
       T("Τα παλιά ονόματα (dir, cd, copy…) δουλεύουν κι εκεί, σαν «ψευδώνυμα» (aliases).")];
   };
+  // ---------- Εργαστήρια 6 και 7: εφαρμογές, συμπίεση, συντήρηση ----------
+  function wgTable(rows, cols) {
+    var wd = cols.map(function (c, i) { return rows.reduce(function (m, r) { return Math.max(m, String(r[i]).length); }, c.length) + 1; });
+    var line = function (r) { return r.map(function (x, i) { return pad(x, wd[i]); }).join("").replace(/\s+$/, ""); };
+    return [line(cols), new Array(wd.reduce(function (a, b) { return a + b; }, 0)).join("-")].concat(rows.map(line));
+  }
+  function wgFind(s, a) {   // winget install 7zip  ·  winget install --id 7zip.7zip -e
+    var ix = a.indexOf("--id"), q = unq((ix >= 0 ? a[ix + 1] : a.filter(function (x) { return x[0] !== "-"; })[1]) || "").toLowerCase();
+    if (!q) return { err: [E("Argument name was not recognized for the current command: ''"), T("Παράδειγμα: winget install 7zip.7zip")] };
+    var all = WINGET.map(function (w) { return { id: w[0], name: w[1], ver: w[2], w: w }; })
+      .concat(s.apps.filter(function (p) { return !WINGET.some(function (w) { return w[0] === p[0]; }); }).map(function (p) { return { id: p[0], name: p[1], ver: p[3] || p[2], app: p }; }));
+    var hit = all.filter(function (p) { return p.id.toLowerCase() === q; });
+    if (!hit.length) hit = all.filter(function (p) { return p.id.toLowerCase().indexOf(q) >= 0 || p.name.toLowerCase().indexOf(q) >= 0; });
+    return { q: q, hit: hit };
+  }
+  function appDir(s, w) { return ["Program Files"].concat(w[5].split("\\")); }
+  WIN.winget = function (s, a) {
+    var cmd = (a[0] || "").toLowerCase();
+    if (cmd === "search" || cmd === "find") {
+      var f = wgFind(s, a); if (f.err) return f.err;
+      s.flags.wgSearch = 1;
+      if (!f.hit.length) return ["No package found matching input criteria."];
+      return wgTable(f.hit.map(function (p) { return [p.name, p.id, p.ver, "winget"]; }), ["Name", "Id", "Version", "Source"]);
+    }
+    if (cmd === "install" || cmd === "add") {
+      f = wgFind(s, a); if (f.err) return f.err;
+      if (!f.hit.length) return ["No package found matching input criteria."];
+      if (f.hit.length > 1) return ["Multiple packages found matching input criteria. Please refine the input."].concat(wgTable(f.hit.map(function (p) { return [p.name, p.id, "winget"]; }), ["Name", "Id", "Source"]), [T("Γράψε ολόκληρο το Id, π.χ. winget install " + f.hit[0].id)]);
+      var p = f.hit[0];
+      if (p.app || s.apps.some(function (x) { return x[0] === p.id; })) return ["Found an existing package already installed. Trying to upgrade the installed package...", "No available upgrade found.", "No newer package versions are available from the configured sources."];
+      var w = p.w;
+      s.apps.push([w[0], w[1], w[2], ""]);
+      var dir = mkdirp(s, appDir(s, w));
+      w[6].forEach(function (x) { var parts = x.split("\\"), d = parts.length > 1 ? mkdirp(s, appDir(s, w).concat(parts.slice(0, -1))) : dir; d.c[parts[parts.length - 1]] = F("", 1048576); });
+      s.flags.wgInstall = (s.flags.wgInstall || []).concat([w[0]]);
+      return ["Found " + w[1] + " [" + w[0] + "] Version " + w[2], "This application is licensed to you by its owner.", "Microsoft is not responsible for, nor does it grant any licenses to, third-party packages.",
+        "Downloading " + w[7], "  ██████████████████████████████  " + w[8] + " / " + w[8], "Successfully verified installer hash", "Starting package install...", G("Successfully installed"),
+        T("Στα αληθινά Windows εδώ βγαίνει και το παράθυρο «Έλεγχος λογαριασμού χρήστη» (UAC): ρωτά αν επιτρέπεις στην εφαρμογή να κάνει αλλαγές.")];
+    }
+    if (cmd === "list" || cmd === "ls") {
+      var q = (a[1] || "").toLowerCase(), rows = s.apps.filter(function (x) { return !q || (x[0] + " " + x[1]).toLowerCase().indexOf(q) >= 0; });
+      s.flags.wgList = 1;
+      if (!rows.length) return ["No installed package found matching input criteria."];
+      return wgTable(rows.map(function (x) { return [x[1], x[0], x[2], x[3], "winget"]; }), ["Name", "Id", "Version", "Available", "Source"]);
+    }
+    if (cmd === "upgrade" || cmd === "update") {
+      var up = s.apps.filter(function (x) { return x[3]; }), tgt = a.slice(1).filter(function (x) { return x[0] !== "-"; }).map(function (x) { return unq(x).toLowerCase(); });
+      if (!tgt.length && !has(a, "--all")) { s.flags.wgUpgradeList = 1; return up.length ? wgTable(up.map(function (x) { return [x[1], x[0], x[2], x[3], "winget"]; }), ["Name", "Id", "Version", "Available", "Source"]).concat([up.length + " upgrades available."]) : ["No installed package found matching input criteria."]; }
+      var did = up.filter(function (x) { return has(a, "--all") || tgt.some(function (t) { return x[0].toLowerCase() === t || x[1].toLowerCase().indexOf(t) >= 0; }); });
+      if (!did.length) return ["No available upgrade found."];
+      var out = [];
+      did.forEach(function (x) { out.push("Found " + x[1] + " [" + x[0] + "] Version " + x[3], "Starting package install...", G("Successfully installed")); x[2] = x[3]; x[3] = ""; });
+      s.flags.wgUpgrade = 1;
+      return out;
+    }
+    if (cmd === "uninstall" || cmd === "remove" || cmd === "rm") {
+      f = wgFind(s, a); if (f.err) return f.err;
+      var inst = f.hit.filter(function (p) { return s.apps.some(function (x) { return x[0] === p.id; }); });
+      if (!inst.length) return ["No installed package found matching input criteria."];
+      var id = inst[0].id, ww = WINGET.filter(function (x) { return x[0] === id; })[0];
+      s.apps = s.apps.filter(function (x) { return x[0] !== id; });
+      if (ww) { var pd = at(s, appDir(s, ww).slice(0, 2)); if (pd) delete at(s, ["Program Files"]).n.c[pd.p[1]]; }
+      s.flags.wgUninstall = (s.flags.wgUninstall || []).concat([id]);
+      return ["Found " + inst[0].name + " [" + id + "]", "Starting package uninstall...", G("Successfully uninstalled")];
+    }
+    return ["Windows Package Manager v1.9.25200", "Copyright (c) Microsoft Corporation. All rights reserved.", "", "The following commands are available:",
+      "  install    Installs the given package", "  search     Find and show basic info of packages", "  list       Display installed packages",
+      "  upgrade    Shows and performs available upgrades", "  uninstall  Uninstalls the given package", T("Παράδειγμα: winget search 7zip")];
+  };
+
+  // tar (υπάρχει στα Windows 10/11): -c φτιάχνει, -t δείχνει, -x βγάζει · -a και .zip = ZIP · -f το αρχείο · -C ο φάκελος
+  function zipSize(n) {
+    if (n.t === "d") return Object.keys(n.c).reduce(function (t, k) { return t + zipSize(n.c[k]); }, 0);
+    return Math.round(fsize(n) * (n.x ? 0.45 : 0.97));   // το κείμενο «μαζεύει», οι εικόνες σχεδόν καθόλου
+  }
+  WIN.tar = function (s, a) {
+    var fl = "", file = null, dirC = null, rest = [];
+    for (var i = 0; i < a.length; i++) {
+      var x = a[i];
+      if (x === "-C" && a[i + 1]) { dirC = unq(a[++i]); continue; }
+      if (/^-[a-z]+$/i.test(x)) { fl += x.slice(1); if (/f$/.test(x) && a[i + 1]) file = unq(a[++i]); continue; }
+      rest.push(unq(x));
+    }
+    if (!file) return [E("tar: Must specify one of -c, -r, -t, -u, -x"), T("Παράδειγμα: tar -a -c -f ergasies.zip Documents")];
+    var arr = resolve(s, file);
+    if (/c/.test(fl)) {
+      if (!rest.length) return [E("tar: no files or directories specified")];
+      var entries = [], out = [];
+      for (var j = 0; j < rest.length; j++) {
+        var r = at(s, resolve(s, rest[j]));
+        if (!r) return [E("tar: " + rest[j] + ": Couldn't visit directory")];
+        (function walk(n, path) {
+          entries.push([path + (n.t === "d" ? "/" : ""), n.t === "d" ? null : clone(n)]);
+          if (/v/.test(fl)) out.push("a " + path);
+          if (n.t === "d") Object.keys(n.c).forEach(function (k) { if (!hidden(n.c[k])) walk(n.c[k], path + "/" + k); });
+        })(r.n, rest[j].replace(/[\\/]+$/, "").replace(/\\/g, "/"));
+      }
+      var par = parentOf(s, arr);
+      if (!par) return [E("tar: Failed to open '" + file + "'")];
+      if (!canWrite(s, arr)) return [E("tar: Failed to open '" + file + "': Permission denied")];
+      var zip = /a/.test(fl) && /\.zip$/i.test(file);
+      par.n.c[arr[arr.length - 1]] = { t: "f", x: "", sz: entries.reduce(function (t, e) { return t + (e[1] ? zipSize(e[1]) : 0); }, 0) + 22 + entries.length * 76, m: NOW(), zip: entries };
+      s.flags.tarC = 1; if (zip) s.flags.tarZip = 1;
+      if (/\.zip$/i.test(file) && !/a/.test(fl)) out.push(T("Χωρίς -a το tar φτιάχνει αρχείο .tar με όνομα .zip! Βάλε -a για αληθινό ZIP."));
+      return out;
+    }
+    var z = at(s, arr);
+    if (!z) return [E("tar: Error opening archive: Failed to open '" + file + "'")];
+    if (!z.n.zip) return [E("tar: Error opening archive: Unrecognized archive format")];
+    if (/t/.test(fl)) { s.flags.tarT = 1; return z.n.zip.map(function (e) { return e[0]; }); }
+    if (/x/.test(fl)) {
+      var base = dirC ? resolve(s, dirC) : s.cwd.slice(), b = at(s, base);
+      if (!b || b.n.t !== "d") return [E("tar: could not chdir to '" + (dirC || "") + "'"), T("Ο φάκελος του -C πρέπει να υπάρχει: φτιάξ' τον πρώτα με md.")];
+      if (!canWrite(s, base)) return [E("tar: Permission denied")];
+      var outx = [];
+      z.n.zip.forEach(function (e) {
+        var parts = e[0].replace(/\/$/, "").split("/");
+        if (!e[1]) mkdirp(s, base.concat(parts));
+        else mkdirp(s, base.concat(parts.slice(0, -1))).c[parts[parts.length - 1]] = clone(e[1]);
+        if (/v/.test(fl)) outx.push("x " + e[0]);
+      });
+      s.flags.tarX = 1;
+      return outx;
+    }
+    return [E("tar: Must specify one of -c, -r, -t, -u, -x")];
+  };
+
+  var ASSOC = { ".txt": "txtfile", ".bat": "batfile", ".cmd": "cmdfile", ".exe": "exefile", ".zip": "CompressedFolder", ".png": "pngfile", ".jpg": "jpegfile",
+    ".html": "htmlfile", ".pdf": "MSEdgePDF", ".docx": "Word.Document.12", ".mp3": "WMP11.AssocFile.MP3", ".lnk": "lnkfile", ".ini": "inifile" };
+  WIN.assoc = function (s, a) {
+    var x = (a[0] || "").toLowerCase();
+    if (!x) return Object.keys(ASSOC).map(function (k) { return k + "=" + ASSOC[k]; });
+    if (/=/.test(x)) return [E("Access is denied."), T("Την αλλαγή συσχέτισης την κάνει ο διαχειριστής. Ο χρήστης τη διαλέγει από «Άνοιγμα με…» στην Εξερεύνηση.")];
+    s.flags.assoc = (s.flags.assoc || []).concat([x]);
+    return ASSOC[x] ? [x + "=" + ASSOC[x]] : ["File association not found for extension " + x];
+  };
+  WIN.powercfg = function (s, a) {
+    var c = (a[0] || "").toLowerCase(), cur = POWER.filter(function (p) { return p[0] === s.power; })[0];
+    if (c === "/list" || c === "/l") { s.flags.pcList = 1; return ["", "Existing Power Schemes (* Active)", "-----------------------------------"].concat(POWER.map(function (p) { return "Power Scheme GUID: " + p[0] + "  (" + p[1] + ")" + (p[0] === s.power ? " *" : ""); })); }
+    if (c === "/getactivescheme") { s.flags.pcGet = 1; return ["Power Scheme GUID: " + cur[0] + "  (" + cur[1] + ")"]; }
+    if (c === "/setactive" || c === "/s") {
+      var v = unq(a[1] || "").toLowerCase(), p = POWER.filter(function (x) { return x[0] === v || x[2].toLowerCase() === v; })[0];
+      if (!p) return ["Invalid Parameters -- try \"/?\" for help", T("Δώσε το GUID από το powercfg /list ή ένα από τα SCHEME_MIN, SCHEME_MAX, SCHEME_BALANCED.")];
+      s.power = p[0]; s.flags.pcSet = p[1]; return [];
+    }
+    return ["", "POWERCFG /COMMAND [ARGUMENTS]", "", "  /LIST, /L          Lists all power schemes.", "  /GETACTIVESCHEME   Retrieves the currently active power scheme.", "  /SETACTIVE, /S     Makes a power scheme active on the system."];
+  };
+  function svcLines(s, k) {
+    var v = s.svc[k], run = v[1] === "RUNNING";
+    return ["", "SERVICE_NAME: " + k, "        TYPE               : 20  WIN32_SHARE_PROCESS", "        STATE              : " + (run ? "4  RUNNING" : "1  STOPPED"),
+      run ? "                                (STOPPABLE, NOT_PAUSABLE, ACCEPTS_SHUTDOWN)" : null, "        WIN32_EXIT_CODE    : 0  (0x0)", "        SERVICE_EXIT_CODE  : 0  (0x0)",
+      "        CHECKPOINT         : 0x0", "        WAIT_HINT          : 0x0"].filter(function (x) { return x !== null; });
+  }
+  WIN.sc = function (s, a) {
+    var c = (a[0] || "").toLowerCase(), k = (a[1] || "").toLowerCase();
+    if (c === "query") {
+      if (!k) return Object.keys(s.svc).filter(function (x) { return s.svc[x][1] === "RUNNING"; }).reduce(function (o, x) { return o.concat(svcLines(s, x)); }, []);
+      if (!s.svc[k]) return ["[SC] EnumQueryServicesStatus:OpenService FAILED 1060:", "", "The specified service does not exist as an installed service."];
+      s.flags["sc_" + k] = 1;
+      return svcLines(s, k);
+    }
+    if (c === "start" || c === "stop") { s.flags.svcDenied = 1; return ["[SC] " + (c === "start" ? "StartService" : "ControlService") + ": OpenService FAILED 5:", "", E("Access is denied."), T("Για να ξεκινήσεις ή να σταματήσεις υπηρεσία χρειάζεσαι Γραμμή εντολών ως διαχειριστής (ή services.msc).")]; }
+    return ["DESCRIPTION:", "        SC is a command line program used for communicating with the Service Control Manager and services.", T("Παράδειγμα: sc query audiosrv")];
+  };
+  WIN.net = function (s, a) {
+    var c = (a[0] || "").toLowerCase();
+    if (c === "start" && a[1]) { s.flags.svcDenied = 1; return ["System error 5 has occurred.", "", E("Access is denied."), T("Θέλει δικαιώματα διαχειριστή: δεξί κλικ στη Γραμμή εντολών → Εκτέλεση ως διαχειριστής.")]; }
+    if (c === "start") return ["These Windows services are started:", ""].concat(Object.keys(s.svc).filter(function (k) { return s.svc[k][1] === "RUNNING"; }).map(function (k) { return "   " + s.svc[k][0]; }), ["", "The command completed successfully."]);
+    if (c === "user") return ["", "User accounts for \\\\SAEK-PC07", "", "-------------------------------------------------------------------------------", "Administrator            DefaultAccount           Guest", USER, "The command completed successfully."];
+    return ["The syntax of this command is:", "", "NET [ START | STOP | USER | ... ]"];
+  };
+  WIN.chkdsk = function (s) {
+    s.flags.chkdsk = 1;
+    return [E("Access Denied as you do not have sufficient privileges or the disk may be locked by another process."), E("You have to invoke this utility running in elevated mode and make sure the disk is unlocked."),
+      T("Το chkdsk ελέγχει τον δίσκο για λάθη και χαλασμένους τομείς. Ως διαχειριστής: chkdsk C: /f (ο έλεγχος γίνεται στην επόμενη επανεκκίνηση).")];
+  };
+  var GUI_TOOLS = {
+    cleanmgr: "Ανοίγει η Εκκαθάριση δίσκου: διαλέγεις τον C: και τσεκάρεις τι θα σβηστεί (Προσωρινά αρχεία, Κάδος ανακύκλωσης, Αρχεία καταγραφής…).",
+    msconfig: "Ανοίγει η Ρύθμιση συστήματος: στην καρτέλα «Εκκίνηση» υπάρχει η «Ασφαλής εκκίνηση» (Safe Mode) για την επόμενη επανεκκίνηση.",
+    rstrui: "Ανοίγει η Επαναφορά Συστήματος: διαλέγεις ένα σημείο επαναφοράς και το σύστημα γυρίζει σε εκείνη την κατάσταση (τα προσωπικά αρχεία δεν αλλάζουν).",
+    eventvwr: "Ανοίγει η Προβολή συμβάντων: Αρχεία καταγραφής των Windows → Σύστημα / Εφαρμογή. Ψάχνεις τα κόκκινα «Σφάλμα» και «Κρίσιμο».",
+    "eventvwr.msc": "Ανοίγει η Προβολή συμβάντων: Αρχεία καταγραφής των Windows → Σύστημα / Εφαρμογή. Ψάχνεις τα κόκκινα «Σφάλμα» και «Κρίσιμο».",
+    "devmgmt.msc": "Ανοίγει η Διαχείριση Συσκευών: μια συσκευή με κίτρινο θαυμαστικό έχει πρόβλημα οδηγού (δεξί κλικ → Ενημέρωση προγράμματος οδήγησης).",
+    "services.msc": "Ανοίγουν οι Υπηρεσίες: κάθε υπηρεσία έχει κατάσταση (Εκτελείται / Διακόπηκε) και τύπο εκκίνησης (Αυτόματα / Μη αυτόματα / Απενεργοποιημένη).",
+    "diskmgmt.msc": "Ανοίγει η Διαχείριση δίσκων: οι δίσκοι και τα διαμερίσματα (C:, D: …) με το μέγεθος και τον ελεύθερο χώρο τους."
+  };
+  Object.keys(GUI_TOOLS).forEach(function (k) { WIN[k] = function (s) { s.flags["tool_" + k] = 1; return [T(GUI_TOOLS[k])]; }; });
+  WIN.shutdown = function (s, a) {
+    s.flags.shutdown = 1;
+    if (has(a, "/o")) return [T("Επανεκκίνηση στις «Επιλογές εκκίνησης για προχωρημένους»: Αντιμετώπιση προβλημάτων → Επιλογές για προχωρημένους → Ρυθμίσεις εκκίνησης → 4 = Ασφαλής λειτουργία."), T("Στον εξομοιωτή δεν κλείνει τίποτα 😉")];
+    if (has(a, "/a")) return [E("Unable to abort the system shutdown because no shutdown was in progress.(1116)")];
+    return [T("Στα αληθινά Windows: shutdown /s = σβήσιμο, /r = επανεκκίνηση, /t 0 = τώρα, /a = ακύρωση. Στον εξομοιωτή δεν κλείνει τίποτα 😉")];
+  };
+
   WIN.chdir = WIN.cd; WIN.md = WIN.mkdir; WIN.rd = WIN.rmdir; WIN.erase = WIN.del; WIN.rename = WIN.ren;
   Object.keys(WIN_APPS).forEach(function (k) { if (!WIN[k]) WIN[k] = function (s) { return winApp(s, k); }; });
 
@@ -736,7 +984,7 @@
 
   var DRIVERS = [
     ["ACPI", "Microsoft ACPI Driver", "Kernel"], ["disk", "Disk Driver", "Kernel"], ["e1dexpress", "Intel(R) PRO/1000 PCI Express", "Kernel"],
-    ["HDAudBus", "Microsoft UAA Bus Driver for", "Kernel"], ["igfxn", "igfxn", "Kernel"], ["kbdhid", "Keyboard HID Driver", "Kernel"],
+    ["HDAudBus", "Microsoft UAA Bus Driver for", "Kernel"], ["igfxn", "igfxn", "Kernel"], ["IntcAzAudAdd", "Realtek High Definition Audio", "Kernel"], ["kbdhid", "Keyboard HID Driver", "Kernel"],
     ["mouhid", "Mouse HID Driver", "Kernel"], ["Ntfs", "Ntfs", "File System"], ["stornvme", "Microsoft Standard NVM Expres", "Kernel"],
     ["Tcpip", "TCP/IP Protocol Driver", "Kernel"], ["USBXHCI", "USB xHCI Compliant Host Contr", "Kernel"], ["usbhub3", "USB Hub 3.0", "Kernel"],
     ["WdFilter", "Microsoft Defender Antivirus", "File System"], ["Wof", "Windows Overlay File System F", "File System"]
@@ -1425,7 +1673,9 @@
       lineTxt = redir.cmd;
     }
 
-    if (s.win) lineTxt = lineTxt.replace(/%USERPROFILE%/gi, "C:\\Users\\" + USER).replace(/%HOMEPATH%/gi, "\\Users\\" + USER).replace(/%USERNAME%/gi, USER).replace(/%COMPUTERNAME%/gi, "SAEK-PC07").replace(/%CD%/gi, pathStr(s, s.cwd));
+    if (s.win) lineTxt = lineTxt.replace(/%USERPROFILE%/gi, "C:\\Users\\" + USER).replace(/%HOMEPATH%/gi, "\\Users\\" + USER).replace(/%USERNAME%/gi, USER).replace(/%COMPUTERNAME%/gi, "SAEK-PC07").replace(/%CD%/gi, pathStr(s, s.cwd))
+      .replace(/%TEMP%|%TMP%/gi, "C:\\Users\\" + USER + "\\AppData\\Local\\Temp").replace(/%LOCALAPPDATA%/gi, "C:\\Users\\" + USER + "\\AppData\\Local")
+      .replace(/%APPDATA%/gi, "C:\\Users\\" + USER + "\\AppData\\Roaming").replace(/%WINDIR%|%SYSTEMROOT%/gi, "C:\\Windows");
     var segs = splitPipe(lineTxt, s.win), low = lineTxt.toLowerCase();
     if (s.win && /^tasklist/.test(low) && /\|\s*find(str)?\b/.test(low) && /chrome/.test(low)) s.flags.countChrome = 1;
     if (!s.win && /^ps\b/.test(low) && /\|\s*grep\b/.test(low) && /firefox/.test(low)) s.flags.countFirefox = 1;
@@ -1504,6 +1754,7 @@
     var win = os === "windows";
     var s = { os: os, win: win, root: win ? winFS() : lnxFS(), cwd: win ? ["Users", USER] : ["home", USER], home: win ? ["Users", USER] : ["home", USER],
       procs: win ? winProcs() : lnxProcs(), ran: {}, flags: {}, hist: [], hi: 0, log: [], busy: false, color: null, after: missionCheck };
+    if (win) { s.free = DISK_FREE; s.apps = winApps(); s.svc = winServices(); s.power = POWER[0][0]; }
     banner(s);
     return s;
   }
@@ -1766,6 +2017,11 @@
   function dataFile(s, rel, rows) {
     var ls = fileLines(s, rel).map(function (l) { return l.trim().replace(/\s+/g, " ").toLowerCase(); });
     return rows.every(function (r) { return ls.indexOf(r.toLowerCase()) >= 0; });
+  }
+  // δελτίο βλάβης (Εργαστήριο 7): οι 4 γραμμές Σύμπτωμα:, Αιτία:, Εργαλείο:, Λύση: με κάτι γραμμένο μετά
+  function deltio(s, f) {
+    var ls = fileLines(s, ["Deltia", f]).map(function (l) { return norm(l); });
+    return ["συμπτωμα", "αιτια", "εργαλειο", "λυση"].every(function (k) { return ls.some(function (l) { return new RegExp("^" + k + "\\s*:\\s*\\S").test(l); }); });
   }
   // από notepad / calc / mspaint: το πρώτο (dir = 1) ή το τελευταίο (dir = -1) που άνοιξε
   function firstLast(s, dir) {
@@ -2733,6 +2989,288 @@
             { q: "Στο 2ο τρέξιμο, πόσα αρχεία ΑΝΤΕΓΡΑΨΕ (Copied) το robocopy;", num: 0 }
           ] }
       ]
+    },
+    {
+      id: "e6", num: 6, title: "Τα Windows με γραφικό περιβάλλον", short: "Windows GUI", date: "2026-11-24",
+      ex: [
+        { id: "e6a", type: "quiz", tag: "Εύκολο", title: "Από τα Windows 1.0 στα 11",
+          desc: "Κάθε έκδοση των Windows έφερε κάτι που χρησιμοποιούμε ακόμα. Βρες ποια έκδοση έφερε το καθένα.",
+          hint: "Η σειρά: 1.0 (1985) → 3.1 (1992) → 95 → XP (2001) → 7 (2009) → 10 (2015) → 11 (2021). Οι χρονιές μέσα στις φράσεις βοηθούν.",
+          opts: ["Windows 1.0", "Windows 3.1", "Windows 95", "Windows XP", "Windows 7", "Windows 10", "Windows 11"],
+          items: [
+            { q: "Το πρώτο γραφικό περιβάλλον της Microsoft, «πάνω» στο MS-DOS (1985)", a: "Windows 1.0", why: "Παράθυρα δίπλα-δίπλα, χωρίς να μπορούν να επικαλύπτονται." },
+            { q: "Η πρώτη μεγάλη επιτυχία, με τη Διαχείριση προγραμμάτων (1992)", a: "Windows 3.1", why: "Γραμματοσειρές TrueType και πολυμέσα." },
+            { q: "Πρώτη φορά κουμπί Έναρξη και γραμμή εργασιών (1995)", a: "Windows 95", why: "Το «Start» που κρατάμε ακόμα." },
+            { q: "Τα πρώτα Windows για το σπίτι χωρίς MS-DOS από κάτω, με πυρήνα NT (2001)", a: "Windows XP", why: "Πιο σταθερά, με λογαριασμούς χρηστών." },
+            { q: "Καρφίτσωμα στη γραμμή εργασιών και «κούμπωμα» παραθύρων στις άκρες, Aero Snap (2009)", a: "Windows 7", why: "Σέρνεις ένα παράθυρο στην άκρη και πιάνει τη μισή οθόνη." },
+            { q: "Εικονικές επιφάνειες εργασίας στην Προβολή εργασιών (2015)", a: "Windows 10", why: "Win + Tab: πολλές «οθόνες» για διαφορετικές δουλειές." },
+            { q: "Κεντραρισμένη Έναρξη και Snap layouts (2021)", a: "Windows 11", why: "Win + Z: έτοιμες διατάξεις για 2, 3 ή 4 παράθυρα." }
+          ] },
+        { id: "e6b", type: "quiz", tag: "Εύκολο", title: "Συντομεύσεις που σώζουν χρόνο",
+          desc: "Ο τεχνικός δουλεύει με το πληκτρολόγιο. Βρες τι κάνει κάθε συντόμευση (δοκίμασέ τες και στον υπολογιστή του εργαστηρίου).",
+          hint: "E = Explorer, D = Desktop, L = Lock, V = το πρόχειρο (Clipboard), Z = Snap layouts. Το Tab αλλάζει: με Alt παράθυρο, με Win επιφάνεια.",
+          opts: ["Εξερεύνηση αρχείων", "Εμφάνιση επιφάνειας εργασίας", "Εναλλαγή παραθύρων", "Προβολή εργασιών (εικονικές επιφάνειες)", "Snap layouts", "Στιγμιότυπο οθόνης", "Κλείδωμα υπολογιστή", "Ιστορικό προχείρου"],
+          items: [
+            { q: "Win + E", a: "Εξερεύνηση αρχείων" }, { q: "Win + D", a: "Εμφάνιση επιφάνειας εργασίας" }, { q: "Alt + Tab", a: "Εναλλαγή παραθύρων" },
+            { q: "Win + Tab", a: "Προβολή εργασιών (εικονικές επιφάνειες)" }, { q: "Win + Z", a: "Snap layouts" }, { q: "Win + Shift + S", a: "Στιγμιότυπο οθόνης" },
+            { q: "Win + L", a: "Κλείδωμα υπολογιστή", why: "Πάντα όταν σηκώνεσαι από τον υπολογιστή!" }, { q: "Win + V", a: "Ιστορικό προχείρου" }
+          ] },
+        { id: "e6c", type: "quiz", tag: "Εύκολο", title: "Τι είναι αυτό το αρχείο;",
+          desc: "Η κατάληξη (μετά την τελευταία τελεία) λέει στα Windows τι είδους είναι ένα αρχείο και με ποιο πρόγραμμα ανοίγει.",
+          hint: "Κοίτα μόνο ό,τι υπάρχει μετά την ΤΕΛΕΥΤΑΙΑ τελεία.",
+          opts: ["κείμενο", "εικόνα", "πρόγραμμα", "συμπιεσμένο", "αρχείο δέσμης", "ιστοσελίδα", "έγγραφο Word", "ήχος"],
+          items: [
+            { q: "ergasia.txt", a: "κείμενο" }, { q: "diakopes.png", a: "εικόνα" }, { q: "setup.exe", a: "πρόγραμμα" }, { q: "ergasies.zip", a: "συμπιεσμένο" },
+            { q: "site.bat", a: "αρχείο δέσμης" }, { q: "index.html", a: "ιστοσελίδα" }, { q: "biografiko.docx", a: "έγγραφο Word" }, { q: "tragoudi.mp3", a: "ήχος" },
+            { q: "Γιατί είναι ύποπτο το ergasia.pdf.exe;", opts: ["είναι πρόγραμμα που παριστάνει το PDF", "είναι PDF με δύο καταλήξεις", "είναι χαλασμένο αρχείο"], a: "είναι πρόγραμμα που παριστάνει το PDF", why: "Με κρυμμένες τις καταλήξεις φαίνεται «ergasia.pdf». Γι' αυτό ανάβουμε την «Εμφάνιση επεκτάσεων ονομάτων αρχείων»." }
+          ] },
+        { id: "e6d", type: "term", os: "windows", tag: "Εύκολο", title: "Καταλήξεις και συσχετίσεις",
+          desc: "Το assoc δείχνει τι είδος αρχείου είναι κάθε κατάληξη για τα Windows. Αλλάζοντας την κατάληξη αλλάζει μόνο το πρόγραμμα που θα το ανοίξει, όχι το περιεχόμενο!",
+          steps: [
+            { t: "Δες τι είναι το .txt και το .zip για τα Windows", hint: ["assoc .txt", "assoc .zip"], check: function (s) { var a = s.flags.assoc || []; return a.indexOf(".txt") >= 0 && a.indexOf(".zip") >= 0; } },
+            { t: "Φτιάξε αντίγραφο του ergasia.txt με όνομα eikona.jpg", hint: ["copy Desktop\\ergasia.txt Desktop\\eikona.jpg"], check: function (s) { return !!node(s, ["Desktop", "eikona.jpg"]); } },
+            { t: "Δες το περιεχόμενο της «εικόνας»", hint: ["type Desktop\\eikona.jpg"], check: function (s) { return H(s, /^type\s+.*eikona\.jpg/i); } }
+          ],
+          asks: [
+            { q: "Τι γράφει το assoc για το .txt;", a: ["txtfile", ".txt=txtfile"] },
+            { q: "Τι είδος είναι το .zip για τα Windows;", a: ["compressedfolder", ".zip=compressedfolder"] },
+            { q: "Άλλαξε το περιεχόμενο με τη νέα κατάληξη; (ναι / όχι)", a: ["οχι", "oxi", "no"] }
+          ] },
+        { id: "e6e", type: "term", os: "windows", tag: "Μέτριο", title: "Ο κρυφός φάκελος AppData",
+          desc: "Στον φάκελο κάθε χρήστη υπάρχει ο ΚΡΥΦΟΣ AppData: εκεί κρατούν οι εφαρμογές ρυθμίσεις και προσωρινά αρχεία. Στην Εξερεύνηση φαίνεται με Προβολή → Εμφάνιση → Κρυφά στοιχεία, στη Γραμμή εντολών με dir /a.",
+          steps: [
+            { t: "Στον φάκελό σου, δες τι φαίνεται με σκέτο dir", hint: ["dir"], check: function (s) { return H(s, /^dir\s*$/i); } },
+            { t: "Δες και τα κρυφά", hint: ["dir /a"], check: function (s) { return s.flags.dirAll; } },
+            { t: "Δες τα χαρακτηριστικά του AppData", hint: ["attrib AppData"], check: function (s) { return H(s, /^attrib\s+appdata/i); } },
+            { t: "Μπες στο AppData\\Local και δες τι έχει", hint: ["cd AppData\\Local", "dir"], check: function (s) { return cwdIs(s, ["Users", USER, "AppData", "Local"]) && H(s, /^dir\b/i); } }
+          ],
+          asks: [
+            { q: "Ποιος φάκελος φάνηκε μόνο με dir /a;", a: ["appdata"] },
+            { q: "Το γράμμα του attrib που τον κάνει κρυφό", a: ["h", "+h"] },
+            { q: "Ποιος φάκελος είναι μέσα στο AppData\\Local;", a: ["temp"] }
+          ] },
+        { id: "e6f", type: "quiz", tag: "Μέτριο", title: "Ψάξε σαν επαγγελματίας",
+          desc: "Στο κουτί αναζήτησης της Εξερεύνησης μπορείς να γράψεις φίλτρα. Βρες ποιο φίλτρο κάνει κάθε δουλειά.",
+          hint: "kind: = είδος, size: = μέγεθος, datemodified: = ημερομηνία αλλαγής, name: = όνομα, ext: = κατάληξη. Το * είναι η γνωστή μάσκα.",
+          opts: ["kind:picture", "*.pdf", "size:>100MB", "datemodified:this week", "name:ergasia", "ext:.docx"],
+          items: [
+            { q: "Όλες οι εικόνες", a: "kind:picture" }, { q: "Όλα τα PDF", a: "*.pdf" }, { q: "Αρχεία πάνω από 100 MB", a: "size:>100MB" },
+            { q: "Ό,τι άλλαξε αυτή την εβδομάδα", a: "datemodified:this week" }, { q: "Αρχεία με το «ergasia» στο όνομα", a: "name:ergasia" }, { q: "Μόνο έγγραφα Word", a: "ext:.docx" },
+            { q: "Πού ανάβουν οι καταλήξεις στα Windows 11;", opts: ["Προβολή → Εμφάνιση → Επεκτάσεις ονομάτων αρχείων", "Ρυθμίσεις → Σύστημα → Οθόνη", "Δεξί κλικ → Ιδιότητες"], a: "Προβολή → Εμφάνιση → Επεκτάσεις ονομάτων αρχείων" }
+          ] },
+        { id: "e6g", type: "term", os: "windows", tag: "Μέτριο", title: "ZIP από τη Γραμμή εντολών",
+          desc: "Τα Windows 10 και 11 έχουν το tar: -a -c φτιάχνει ZIP (create), -t δείχνει τι έχει μέσα, -x τα βγάζει (extract), -f λέει ποιο αρχείο, -C σε ποιον φάκελο. Ό,τι κάνει το «Αποστολή προς → Συμπιεσμένος φάκελος», από τη Γραμμή εντολών.",
+          steps: [
+            { t: "Συμπίεσε τον φάκελο Documents στο ergasies.zip", hint: ["tar -a -c -f ergasies.zip Documents"], check: function (s) { var r = node(s, ["ergasies.zip"]); return !!(r && r.n.zip) && s.flags.tarZip; } },
+            { t: "Δες το μέγεθός του", hint: ["dir ergasies.zip"], check: function (s) { return H(s, /^dir\s+ergasies\.zip/i); } },
+            { t: "Δες τι έχει μέσα", hint: ["tar -tf ergasies.zip"], check: function (s) { return s.flags.tarT; } },
+            { t: "Βγάλ' τα σε νέο φάκελο Anoigma", hint: ["md Anoigma", "tar -xf ergasies.zip -C Anoigma"], check: function (s) { return !!node(s, ["Anoigma", "Documents", "sxolio.txt"]); } }
+          ],
+          asks: [
+            { q: "Πόσα αρχεία έχει το ZIP;", num: 2 },
+            { q: "Ποια παράμετρος του tar φτιάχνει (create);", a: ["-c", "c"] },
+            { q: "Ποια βγάζει τα αρχεία (extract);", a: ["-x", "x"] }
+          ] },
+        { id: "e6h", type: "quiz", tag: "Μέτριο", title: "ZIP και 7-Zip: τι ισχύει;",
+          desc: "Ερωτήσεις για τη συμπίεση αρχείων.",
+          hint: "Η συμπίεση βρίσκει επαναλήψεις και τις γράφει πιο σύντομα. Ό,τι είναι ήδη συμπιεσμένο (jpg, mp3, mp4) δεν μικραίνει πολύ.",
+          items: [
+            { q: "Η συμπίεση ZIP χαλάει την ποιότητα των αρχείων;", opts: ["όχι, βγαίνουν ακριβώς ίδια", "ναι, λίγο"], a: "όχι, βγαίνουν ακριβώς ίδια", why: "Είναι συμπίεση χωρίς απώλειες." },
+            { q: "Ποιο μικραίνει περισσότερο σε ZIP;", opts: ["ένα αρχείο κειμένου .txt", "μια φωτογραφία .jpg"], a: "ένα αρχείο κειμένου .txt", why: "Το .jpg είναι ήδη συμπιεσμένο." },
+            { q: "Η μορφή .7z, σε σχέση με το .zip…", opts: ["συνήθως συμπιέζει περισσότερο", "συμπιέζει πάντα λιγότερο", "είναι το ίδιο"], a: "συνήθως συμπιέζει περισσότερο" },
+            { q: "Τα Windows ανοίγουν ένα .zip χωρίς άλλο πρόγραμμα;", opts: ["ναι, σαν φάκελο", "όχι, θέλουν 7-Zip"], a: "ναι, σαν φάκελο" },
+            { q: "Θέλεις ZIP με κωδικό πρόσβασης. Τι χρησιμοποιείς;", opts: ["7-Zip με κρυπτογράφηση AES-256", "Αποστολή προς → Συμπιεσμένος φάκελος", "δεν γίνεται"], a: "7-Zip με κρυπτογράφηση AES-256", why: "Η ενσωματωμένη συμπίεση των Windows δεν βάζει κωδικό." },
+            { q: "Πώς ανοίγεις όλα τα αρχεία ενός ZIP στα Windows;", opts: ["δεξί κλικ → Εξαγωγή όλων", "διπλό κλικ → Διαγραφή"], a: "δεξί κλικ → Εξαγωγή όλων" }
+          ] },
+        { id: "e6i", type: "term", os: "windows", tag: "Μέτριο", title: "Εγκατάσταση με winget",
+          desc: "Το winget είναι ο «διαχειριστής πακέτων» των Windows: βρίσκει, κατεβάζει από επίσημη πηγή και εγκαθιστά εφαρμογές με μία εντολή. Ό,τι το apt στο Linux, που θα δούμε αργότερα.",
+          steps: [
+            { t: "Ψάξε το 7-Zip", hint: ["winget search 7zip"], check: function (s) { return s.flags.wgSearch; } },
+            { t: "Εγκατάστησέ το με το Id του", hint: ["winget install 7zip.7zip"], check: function (s) { return (s.flags.wgInstall || []).indexOf("7zip.7zip") >= 0; } },
+            { t: "Δες ότι εγκαταστάθηκε", hint: ["winget list 7zip"], check: function (s) { return s.flags.wgList; } },
+            { t: "Δες τα αρχεία του στο Program Files", hint: ['dir "C:\\Program Files\\7-Zip"'], check: function (s) { return H(s, /^dir\s+"?c:\\program files\\7-zip/i); } }
+          ],
+          asks: [
+            { q: "Η έκδοση του 7-Zip", a: ["24.08"] },
+            { q: "Το Id του πακέτου", a: ["7zip.7zip"] },
+            { q: "Ποιο παράθυρο θα ζητούσε άδεια στα αληθινά Windows;", a: [/uac|ελεγχος λογαριασμου/] }
+          ] },
+        { id: "e6j", type: "term", os: "windows", tag: "Μέτριο", title: "Ενημερώσεις και απεγκατάσταση",
+          desc: "Οι παλιές εκδόσεις έχουν κενά ασφαλείας. Το winget upgrade δείχνει ποιες εφαρμογές έχουν νεότερη έκδοση και το winget upgrade --all τις ενημερώνει όλες. Το winget uninstall σβήνει μια εφαρμογή σωστά (όχι σβήνοντας τον φάκελό της!).",
+          steps: [
+            { t: "Δες ποιες εφαρμογές έχουν ενημέρωση", hint: ["winget upgrade"], check: function (s) { return s.flags.wgUpgradeList; } },
+            { t: "Ενημέρωσέ τες όλες", hint: ["winget upgrade --all"], check: function (s) { return s.flags.wgUpgrade && !s.apps.some(function (x) { return x[3]; }); } },
+            { t: "Εγκατάστησε το VLC", hint: ["winget install VideoLAN.VLC"], check: function (s) { return (s.flags.wgInstall || []).indexOf("VideoLAN.VLC") >= 0; } },
+            { t: "Απεγκατάστησέ το", hint: ["winget uninstall VideoLAN.VLC"], check: function (s) { return (s.flags.wgUninstall || []).indexOf("VideoLAN.VLC") >= 0; } }
+          ],
+          asks: [
+            { q: "Πόσες ενημερώσεις ήταν διαθέσιμες;", num: 3 },
+            { q: "Σε ποια έκδοση πήγε το Visual Studio Code;", a: ["1.95.2"] }
+          ] },
+        { id: "e6k", type: "quiz", tag: "Εύκολο", title: "Ασφάλεια Windows",
+          desc: "Μικρές αποφάσεις που κρατούν τον υπολογιστή ασφαλή.",
+          hint: "Ασφάλεια Windows = Microsoft Defender (antivirus) + Τείχος προστασίας. Και οι ενημερώσεις κλείνουν «τρύπες».",
+          items: [
+            { q: "Από πού κατεβάζεις ένα πρόγραμμα με ασφάλεια;", opts: ["από την επίσημη σελίδα, το Microsoft Store ή με winget", "από όποιο site βγει πρώτο", "από συνημμένο σε email"], a: "από την επίσημη σελίδα, το Microsoft Store ή με winget" },
+            { q: "Τι κάνει το Τείχος προστασίας (firewall);", opts: ["ελέγχει ποιες συνδέσεις δικτύου επιτρέπονται", "σβήνει ιούς", "επιταχύνει το Internet"], a: "ελέγχει ποιες συνδέσεις δικτύου επιτρέπονται" },
+            { q: "Ποιο antivirus έχουν ενσωματωμένο τα Windows;", opts: ["Microsoft Defender", "7-Zip", "Windows Update"], a: "Microsoft Defender" },
+            { q: "Γιατί χρειάζονται οι ενημερώσεις (Windows Update);", opts: ["κλείνουν κενά ασφαλείας", "αλλάζουν μόνο την εμφάνιση", "δεν χρειάζονται"], a: "κλείνουν κενά ασφαλείας" },
+            { q: "Πετάγεται παράθυρο UAC για πρόγραμμα που ΔΕΝ ξεκίνησες εσύ. Τι κάνεις;", opts: ["πατάς Όχι", "πατάς Ναι για να φύγει"], a: "πατάς Όχι", why: "Κάτι προσπαθεί να αλλάξει το σύστημα χωρίς να το ζητήσεις." },
+            { q: "Πού κάνεις γρήγορη σάρωση για ιούς;", opts: ["Ασφάλεια Windows → Προστασία από ιούς και απειλές", "Πίνακας ελέγχου → Ήχος"], a: "Ασφάλεια Windows → Προστασία από ιούς και απειλές" }
+          ] },
+        { id: "e6l", type: "term", os: "windows", tag: "Ο στόχος", title: "Οργάνωσε, συμπίεσε, παράδωσε",
+          desc: "Το παραδοτέο της ημέρας: φάκελος Ergasia6 με υποφακέλους Keimena και Eikones, τα σωστά αρχεία στη θέση τους, και όλα μαζί σε ένα Ergasia6.zip.",
+          steps: [
+            { t: "Φτιάξε τον Ergasia6 με τους Keimena και Eikones", hint: ["md Ergasia6\\Keimena Ergasia6\\Eikones"], check: function (s) { return isDir(s, ["Ergasia6", "Keimena"]) && isDir(s, ["Ergasia6", "Eikones"]); } },
+            { t: "Βάλε στα Keimena το ergasia.txt και όλα τα .txt των Documents", hint: ["copy Desktop\\ergasia.txt Ergasia6\\Keimena", "copy Documents\\*.txt Ergasia6\\Keimena"], check: function (s) { return ["ergasia.txt", "sxolio.txt", "programma.txt"].every(function (f) { return node(s, ["Ergasia6", "Keimena", f]); }); } },
+            { t: "Βάλε στα Eikones την εικόνα από τις Εικόνες", hint: ["copy Pictures\\diakopes.png Ergasia6\\Eikones"], check: function (s) { return !!node(s, ["Ergasia6", "Eikones", "diakopes.png"]); } },
+            { t: "Δες το δέντρο με τα αρχεία", hint: ["tree Ergasia6 /f"], check: function (s) { return H(s, /^tree\s+ergasia6\b.*\/f/i); } },
+            { t: "Φτιάξε το Ergasia6.zip και δες τι έχει μέσα", hint: ["tar -a -c -f Ergasia6.zip Ergasia6", "tar -tf Ergasia6.zip"], check: function (s) { var r = node(s, ["Ergasia6.zip"]); return !!(r && r.n.zip && r.n.zip.some(function (e) { return /eikones\/diakopes\.png$/i.test(e[0]); })) && s.flags.tarT; } }
+          ],
+          asks: [
+            { q: "Πόσα αρχεία (όχι φάκελοι) έχει το Ergasia6.zip;", a: function (s) { var r = node(s, ["Ergasia6.zip"]); return r && r.n.zip ? [String(r.n.zip.filter(function (e) { return e[1]; }).length)] : ["4"]; } },
+            { q: "Ποια εντολή δείχνει τι έχει μέσα ένα ZIP;", a: [/^tar\s+-?\w*t/] }
+          ] }
+      ]
+    },
+    {
+      id: "e7", num: 7, title: "Συντήρηση, βλάβες και βελτιστοποίηση Windows", short: "Βλάβες · ΤΝ", date: "2026-12-01",
+      ex: [
+        { id: "e7a", type: "quiz", tag: "Εύκολο", title: "Σύμπτωμα → πιθανή αιτία",
+          desc: "Ο τεχνικός ξεκινά από αυτό που βλέπει ο χρήστης. Για κάθε σύμπτωμα διάλεξε την πιο πιθανή αιτία.",
+          hint: "Συσκευή που δεν δουλεύει → οδηγός. Παράθυρα που ανοίγουν μόνα τους → κακόβουλο. Αργό ξεκίνημα → εκκίνηση.",
+          opts: ["οδηγός συσκευής", "κακόβουλο λογισμικό", "γεμάτος δίσκος", "πολλές εφαρμογές εκκίνησης", "κατεστραμμένα αρχεία συστήματος", "ενημέρωση που δεν ολοκληρώθηκε"],
+          items: [
+            { q: "Ο εκτυπωτής δεν τυπώνει μετά τη σύνδεση σε νέο υπολογιστή", a: "οδηγός συσκευής" },
+            { q: "Ανοίγουν μόνα τους παράθυρα με διαφημίσεις", a: "κακόβουλο λογισμικό" },
+            { q: "Δεν αποθηκεύονται αρχεία και ο δίσκος C: φαίνεται κόκκινος", a: "γεμάτος δίσκος" },
+            { q: "Ο υπολογιστής κάνει 5 λεπτά να ανοίξει", a: "πολλές εφαρμογές εκκίνησης" },
+            { q: "Μπλε οθόνη, και το sfc βρίσκει προβλήματα", a: "κατεστραμμένα αρχεία συστήματος" },
+            { q: "Σε κάθε εκκίνηση γράφει «Αναίρεση αλλαγών…»", a: "ενημέρωση που δεν ολοκληρώθηκε" }
+          ] },
+        { id: "e7b", type: "quiz", tag: "Εύκολο", title: "Πρόβλημα → εργαλείο",
+          desc: "Για κάθε πρόβλημα, ποιο εργαλείο των Windows ανοίγεις πρώτο;",
+          hint: "Εφαρμογές → Διαχείριση Εργασιών. Συσκευές → Διαχείριση Συσκευών. «Τι έγινε;» → Προβολή συμβάντων. «Γύρνα πίσω» → Επαναφορά Συστήματος.",
+          opts: ["Διαχείριση Εργασιών", "Διαχείριση Συσκευών", "Προβολή συμβάντων", "Επαναφορά Συστήματος", "Ασφαλής λειτουργία", "Εκκαθάριση δίσκου"],
+          items: [
+            { q: "Κλείσε μια εφαρμογή που «δεν αποκρίνεται»", a: "Διαχείριση Εργασιών" },
+            { q: "Μια συσκευή έχει κίτρινο θαυμαστικό", a: "Διαχείριση Συσκευών" },
+            { q: "Μάθε τι έγινε λίγο πριν από μια μπλε οθόνη", a: "Προβολή συμβάντων" },
+            { q: "Γύρνα το σύστημα όπως ήταν χθες, πριν από μια κακή εγκατάσταση", a: "Επαναφορά Συστήματος" },
+            { q: "Τα Windows κολλάνε στην εκκίνηση: ξεκίνα με τα ελάχιστα", a: "Ασφαλής λειτουργία" },
+            { q: "Ελευθέρωσε χώρο από προσωρινά αρχεία", a: "Εκκαθάριση δίσκου" },
+            { q: "Σταμάτα εφαρμογές που ανοίγουν μόνες τους με τα Windows", a: "Διαχείριση Εργασιών", why: "Καρτέλα «Εκκίνηση» (Startup apps)." }
+          ] },
+        { id: "e7c", type: "term", os: "windows", tag: "Εύκολο", title: "Σταθμός 1: κολλάει μια εφαρμογή",
+          desc: "Ο χρήστης λέει «πάγωσε το παιχνίδι και δεν κλείνει». Βρες ποια διεργασία δεν αποκρίνεται και κλείσ' την.",
+          steps: [
+            { t: "Βρες ποια διεργασία δεν αποκρίνεται", hint: ['tasklist /fi "status eq not responding"'], check: function (s) { return s.flags.foundStuck; } },
+            { t: "Προσπάθησε να την κλείσεις κανονικά", hint: ["taskkill /im paixnidi.exe"], check: function (s) { return H(s, /^taskkill\b(?!.*\/f).*paixnidi/i); } },
+            { t: "Κλείσ' την αναγκαστικά", hint: ["taskkill /im paixnidi.exe /f"], check: function (s) { return !procNamed(s, "paixnidi.exe"); } },
+            { t: "Άνοιξε και τη Διαχείριση Εργασιών", hint: ["start taskmgr"], check: function (s) { return procNamed(s, "taskmgr.exe"); } }
+          ],
+          asks: [
+            { q: "Ποια εφαρμογή δεν αποκρινόταν;", a: ["paixnidi.exe", "paixnidi"] },
+            { q: "Ποια παράμετρος χρειάστηκε για να κλείσει;", a: ["/f"] },
+            { q: "Η συντόμευση που ανοίγει κατευθείαν τη Διαχείριση Εργασιών", a: [/ctrl\W*shift\W*esc/] }
+          ] },
+        { id: "e7d", type: "term", os: "windows", tag: "Μέτριο", title: "Σταθμός 2: αργεί να ανοίξει",
+          desc: "«Κάνει 5 λεπτά να ανοίξει!» Δες πότε ξεκίνησε το σύστημα και ποια προγράμματα ανοίγουν μόνα τους μαζί του. Κάθε τέτοιο πρόγραμμα καθυστερεί την εκκίνηση.",
+          steps: [
+            { t: "Δες πότε ξεκίνησε το σύστημα", hint: ['systeminfo | find "Boot Time"'], check: function (s) { return H(s, /^systeminfo\b.*\|\s*find\b.*boot/i); } },
+            { t: "Δες ποια προγράμματα ξεκινούν μαζί με τα Windows", hint: ["wmic startup get caption,command"], check: function (s) { return s.flags.wmicStartup; } },
+            { t: "Άνοιξε τη Διαχείριση Εργασιών (εκεί τα απενεργοποιείς)", hint: ["start taskmgr"], check: function (s) { return procNamed(s, "taskmgr.exe"); } }
+          ],
+          asks: [
+            { q: "Πόσα προγράμματα ξεκινούν μαζί με τα Windows;", num: 5 },
+            { q: "Ποιο από αυτά ΔΕΝ πρέπει να απενεργοποιήσεις;", a: ["securityhealth", /security/] },
+            { q: "Σε ποια καρτέλα της Διαχείρισης Εργασιών τα απενεργοποιείς;", a: [/εκκινηση|startup/] }
+          ] },
+        { id: "e7e", type: "term", os: "windows", tag: "Μέτριο", title: "Σταθμός 3: γέμισε ο δίσκος",
+          desc: "«Δεν με αφήνει να αποθηκεύσω!» Μέτρησε τον ελεύθερο χώρο, σβήσε τα προσωρινά αρχεία του %TEMP% και ξαναμέτρησε. Ό,τι κάνει η Εκκαθάριση δίσκου, με το χέρι.",
+          steps: [
+            { t: "Δες πόσος χώρος είναι ελεύθερος", hint: ["wmic logicaldisk get caption,freespace,size"], check: function (s) { return markOnce(s, "_e7a", !!s.diskChecks); } },
+            { t: "Δες τα προσωρινά αρχεία", hint: ["dir %TEMP%"], check: function (s) { return H(s, /^dir\s+%temp%/i); } },
+            { t: "Σβήσ' τα όλα", hint: ["del /q %TEMP%\\*"], check: function (s) { return s.flags.lockDenied && s.free > DISK_FREE; } },
+            { t: "Ξαναμέτρησε τον ελεύθερο χώρο", hint: ["wmic logicaldisk get caption,freespace,size"], check: function (s) { return s.diskChecks >= 2 && s.free > DISK_FREE; } }
+          ],
+          asks: [
+            { q: "Πόσα GB ήταν ελεύθερα στην αρχή;", num: 17.5 },
+            { q: "Πόσα αρχεία ΔΕΝ σβήστηκαν;", num: 2 },
+            { q: "Γιατί δεν σβήστηκαν;", a: [/χρησιμοποι|ανοιχτ|σε χρηση|used|another process|προγραμμα/] }
+          ] },
+        { id: "e7f", type: "term", os: "windows", tag: "Μέτριο", title: "Σταθμός 4: δεν έχει ήχο",
+          desc: "«Δεν ακούγεται τίποτα!» Το ηχείο είναι συνδεδεμένο. Έλεγξε τον οδηγό της κάρτας ήχου και την υπηρεσία Windows Audio (audiosrv).",
+          steps: [
+            { t: "Βρες τον οδηγό ήχου", hint: ['driverquery | find "Audio"'], check: function (s) { return H(s, /^driverquery\b.*\|\s*find\b.*audio/i); } },
+            { t: "Δες την κατάσταση της υπηρεσίας ήχου", hint: ["sc query audiosrv"], check: function (s) { return s.flags.sc_audiosrv; } },
+            { t: "Προσπάθησε να την ξεκινήσεις", hint: ["net start audiosrv"], check: function (s) { return s.flags.svcDenied; } },
+            { t: "Άνοιξε τη Διαχείριση Συσκευών", hint: ["devmgmt.msc"], check: function (s) { return s.flags["tool_devmgmt.msc"]; } }
+          ],
+          asks: [
+            { q: "Σε ποια κατάσταση είναι η υπηρεσία ήχου; (στα αγγλικά)", a: ["stopped"] },
+            { q: "Ποια εταιρεία έφτιαξε τον οδηγό ήχου;", a: ["realtek"] },
+            { q: "Τι χρειάζεται για να την ξεκινήσεις;", a: [/διαχειρ|admin/] }
+          ] },
+        { id: "e7g", type: "quiz", tag: "Μέτριο", title: "Διαβάζοντας την Προβολή συμβάντων",
+          desc: "Η Προβολή συμβάντων (eventvwr) είναι το «ημερολόγιο» των Windows: ό,τι έγινε, με ώρα, πηγή και αναγνωριστικό. Μάθε να διαβάζεις τα πιο συνηθισμένα.",
+          hint: "Επίπεδα από το πιο σοβαρό: Κρίσιμο → Σφάλμα → Προειδοποίηση → Πληροφορίες.",
+          items: [
+            { q: "Ποιο επίπεδο είναι το πιο σοβαρό;", opts: ["Κρίσιμο", "Σφάλμα", "Προειδοποίηση", "Πληροφορίες"], a: "Κρίσιμο" },
+            { q: "Kernel-Power, αναγνωριστικό 41: «Το σύστημα επανεκκινήθηκε χωρίς να τερματιστεί σωστά»", opts: ["κόπηκε το ρεύμα ή κόλλησε και κλείστηκε από το κουμπί", "ολοκληρώθηκε κανονικά μια ενημέρωση", "συνδέθηκε νέο ποντίκι"], a: "κόπηκε το ρεύμα ή κόλλησε και κλείστηκε από το κουμπί" },
+            { q: "Disk, αναγνωριστικό 7: «Η συσκευή έχει κατεστραμμένο μπλοκ»", opts: ["ο δίσκος αρχίζει να χαλάει: αντίγραφο ασφαλείας τώρα!", "γέμισε ο δίσκος", "λείπει ο οδηγός ήχου"], a: "ο δίσκος αρχίζει να χαλάει: αντίγραφο ασφαλείας τώρα!" },
+            { q: "Πού βρίσκεις τα σφάλματα των εφαρμογών;", opts: ["Αρχεία καταγραφής των Windows → Εφαρμογή", "Αρχεία καταγραφής των Windows → Ασφάλεια", "Αρχεία καταγραφής των Windows → Εγκατάσταση"], a: "Αρχεία καταγραφής των Windows → Εφαρμογή" },
+            { q: "Μία Προειδοποίηση μία φορά τον μήνα…", opts: ["συνήθως δεν είναι ανησυχητική", "θέλει αμέσως επανεγκατάσταση"], a: "συνήθως δεν είναι ανησυχητική", why: "Μετρά αν επαναλαμβάνεται και αν συμπίπτει με τη βλάβη." }
+          ] },
+        { id: "e7h", type: "term", os: "windows", tag: "Εύκολο", title: "Σχέδιο τροφοδοσίας",
+          desc: "Το σχέδιο τροφοδοσίας ορίζει αν ο υπολογιστής «τρέχει» στο φουλ ή κάνει οικονομία. Ισορροπημένο είναι το συνηθισμένο, Υψηλές επιδόσεις για βαριά δουλειά, Εξοικονόμηση για τη μπαταρία του φορητού.",
+          steps: [
+            { t: "Δες τα σχέδια και ποιο είναι ενεργό (*)", hint: ["powercfg /list"], check: function (s) { return s.flags.pcList; } },
+            { t: "Ενεργοποίησε τις Υψηλές επιδόσεις", hint: ["powercfg /setactive SCHEME_MIN"], check: function (s) { return s.flags.pcSet === "High performance"; } },
+            { t: "Έλεγξε ποιο είναι τώρα ενεργό", hint: ["powercfg /getactivescheme"], check: function (s) { return s.flags.pcGet && s.flags.pcSet; } }
+          ],
+          asks: [
+            { q: "Ποιο σχέδιο ήταν ενεργό στην αρχή; (στα αγγλικά)", a: ["balanced"] },
+            { q: "Το «ψευδώνυμο» του High performance", a: ["scheme_min"] },
+            { q: "Σε φορητό, ποιο σχέδιο κρατά περισσότερο τη μπαταρία; (στα αγγλικά)", a: ["power saver", "powersaver"] }
+          ] },
+        { id: "e7i", type: "term", os: "windows", tag: "Μέτριο", title: "Τα εργαλεία της «βαριάς» επισκευής",
+          desc: "Όταν τα απλά δεν φτάνουν: sfc (αρχεία συστήματος), chkdsk (δίσκος), msconfig (Ασφαλής εκκίνηση), rstrui (Επαναφορά Συστήματος) και shutdown /r /o (επανεκκίνηση στις επιλογές για προχωρημένους).",
+          steps: [
+            { t: "Δοκίμασε τον έλεγχο αρχείων συστήματος και δίσκου", hint: ["sfc /scannow", "chkdsk"], check: function (s) { return s.flags.sfc && s.flags.chkdsk; } },
+            { t: "Άνοιξε τη Ρύθμιση συστήματος", hint: ["msconfig"], check: function (s) { return s.flags.tool_msconfig; } },
+            { t: "Άνοιξε την Επαναφορά Συστήματος", hint: ["rstrui"], check: function (s) { return s.flags.tool_rstrui; } },
+            { t: "Ζήτα επανεκκίνηση στις επιλογές για προχωρημένους", hint: ["shutdown /r /o"], check: function (s) { return H(s, /^shutdown\b.*\/o/i); } }
+          ],
+          asks: [
+            { q: "Τι χρειάζονται και το sfc και το chkdsk;", a: [/διαχειρ|admin/] },
+            { q: "Σε ποια καρτέλα του msconfig είναι η Ασφαλής εκκίνηση;", a: [/εκκινηση|boot/] },
+            { q: "Σβήνει η Επαναφορά Συστήματος τα προσωπικά σου αρχεία; (ναι / όχι)", a: ["οχι", "oxi", "no"] }
+          ] },
+        { id: "e7j", type: "quiz", tag: "Μέτριο", title: "Η ΤΝ ως βοηθός του τεχνικού",
+          desc: "Ένα chatbot (ChatGPT, Copilot, Claude…) βοηθά πολύ στη διάγνωση, αν ρωτάς σωστά και ελέγχεις την απάντηση.",
+          hint: "Καλή ερώτηση = έκδοση Windows + τι ακριβώς γίνεται + το μήνυμα σφάλματος + τι άλλαξε πριν. Και ποτέ μην τρέχεις εντολή που δεν καταλαβαίνεις.",
+          items: [
+            { q: "Ποια ερώτηση θα φέρει την πιο χρήσιμη απάντηση;", opts: ["«Windows 11: το Word κλείνει μόλις ανοίξω .docx, με σφάλμα 0xc0000142. Τι να ελέγξω;»", "«Δεν δουλεύει το Word, βοήθεια»", "«Τι έχει ο υπολογιστής μου;»"], a: "«Windows 11: το Word κλείνει μόλις ανοίξω .docx, με σφάλμα 0xc0000142. Τι να ελέγξω;»" },
+            { q: "Η ΤΝ προτείνει μια εντολή που δεν καταλαβαίνεις. Τι κάνεις;", opts: ["ρωτάς τι κάνει κάθε κομμάτι και ελέγχεις πριν την τρέξεις", "την τρέχεις αμέσως ως διαχειριστής"], a: "ρωτάς τι κάνει κάθε κομμάτι και ελέγχεις πριν την τρέξεις" },
+            { q: "Τι ΔΕΝ γράφεις ποτέ σε ένα chatbot;", opts: ["κωδικούς πρόσβασης και προσωπικά δεδομένα", "το μήνυμα σφάλματος", "την έκδοση των Windows"], a: "κωδικούς πρόσβασης και προσωπικά δεδομένα" },
+            { q: "Η ΤΝ λέει «τρέξε format C: για να φύγει ο ιός».", opts: ["σταματάς: σβήνει όλο τον δίσκο", "το κάνεις, αφού το είπε"], a: "σταματάς: σβήνει όλο τον δίσκο" },
+            { q: "Η απάντηση αναφέρει μενού που δεν υπάρχει στα δικά σου Windows.", opts: ["μπορεί να μιλά για άλλη έκδοση ή να «επινοεί»: ελέγχεις σε επίσημη πηγή", "τα Windows σου είναι χαλασμένα"], a: "μπορεί να μιλά για άλλη έκδοση ή να «επινοεί»: ελέγχεις σε επίσημη πηγή" },
+            { q: "Ποια πληροφορία βοηθά περισσότερο την ΤΝ;", opts: ["η έκδοση των Windows (winver) και τι άλλαξε πριν τη βλάβη", "το χρώμα της ταπετσαρίας"], a: "η έκδοση των Windows (winver) και τι άλλαξε πριν τη βλάβη" }
+          ] },
+        { id: "e7k", type: "term", os: "windows", tag: "Ο στόχος", title: "Δελτία βλάβης",
+          desc: "Το παραδοτέο: δύο δελτία βλάβης για δύο σταθμούς, σε αρχεία κειμένου μέσα στον φάκελο Deltia. Κάθε δελτίο έχει τέσσερις γραμμές: Σύμπτωμα:, Αιτία:, Εργαλείο:, Λύση:.",
+          steps: [
+            { t: "Φτιάξε τον φάκελο Deltia", hint: ["md Deltia"], check: function (s) { return isDir(s, ["Deltia"]); } },
+            { t: "Γράψε το 1ο δελτίο (π.χ. για τον σταθμό 2) στο deltio1.txt", hint: ["echo Σύμπτωμα: κάνει 5 λεπτά να ανοίξει > Deltia\\deltio1.txt", "echo Αιτία: 5 προγράμματα ξεκινούν μαζί με τα Windows >> Deltia\\deltio1.txt", "echo Εργαλείο: wmic startup, Διαχείριση Εργασιών - Εκκίνηση >> Deltia\\deltio1.txt", "echo Λύση: απενεργοποίηση Spotify, Discord, Teams >> Deltia\\deltio1.txt"], check: function (s) { return deltio(s, "deltio1.txt"); } },
+            { t: "Γράψε το 2ο δελτίο για άλλον σταθμό στο deltio2.txt", hint: ["echo Σύμπτωμα: ... > Deltia\\deltio2.txt", "echo Αιτία: ... >> Deltia\\deltio2.txt", "echo Εργαλείο: ... >> Deltia\\deltio2.txt", "echo Λύση: ... >> Deltia\\deltio2.txt"], check: function (s) { return deltio(s, "deltio2.txt"); } },
+            { t: "Δες και τα δύο", hint: ["type Deltia\\deltio1.txt", "type Deltia\\deltio2.txt"], check: function (s) { return H(s, /^type\s+.*deltio1/i) && H(s, /^type\s+.*deltio2/i); } }
+          ],
+          asks: [
+            { q: "Πόσες γραμμές έχει κάθε δελτίο;", num: 4 },
+            { q: "Με ποιο σύμβολο ΠΡΟΣΘΕΤΕΙΣ γραμμή στο τέλος ενός αρχείου;", a: [">>"] }
+          ] }
+      ]
     }
   ];
 
@@ -2845,7 +3383,8 @@
     "1t": ["Θεωρία 1", "files/markopoulo/sls-01-theoria.pdf"], "1p": ["Πρακτικό 1", "files/markopoulo/sls-01-praktiko.pdf"],
     "2t": ["Θεωρία 2", "files/markopoulo/sls-02-theoria.pdf"], "2p": ["Πρακτικό 2", "files/markopoulo/sls-02-praktiko.pdf"],
     "3": ["Εργαστήριο 3", "files/markopoulo/sls-03-fcfs-sjf.pdf?v=2"], "4": ["Εργαστήριο 4", "files/markopoulo/sls-04-rr-srtf-priority.pdf"],
-    "5": ["Εργαστήριο 5", "files/markopoulo/sls-05-cmd.pdf"]
+    "5": ["Εργαστήριο 5", "files/markopoulo/sls-05-cmd.pdf"],
+    "6": ["Εργαστήριο 6", "files/markopoulo/sls-06-windows-gui.pdf"], "7": ["Εργαστήριο 7", "files/markopoulo/sls-07-vlaves.pdf"]
   };
   var REFS = {
     e1a: ["1t", [6, 9]], e1b: ["1t", [7]], e1c: ["1p", [6]], e1d: ["1p", [10]], e1e: ["1p", [16]], e1f: ["1t", [10, 11]], e1g: ["1t", [13, 14]], e1h: ["1t", [8]],
@@ -2859,7 +3398,11 @@
     r34a: ["4", [3, 37]], r34b: ["3", [6, 15]], r34c: ["3", [10, 15]], r34d: ["4", [6, 7]], r34e: ["4", [13]], r34f: ["4", [24, 25]], r34g: ["4", [18]], r34h: ["4", [21]],
     r34i: ["4", [3, 25]], r34j: ["4", [6, 7]], r34k: ["4", [13]], r34l: ["4", [26, 27]], r34m: ["3", [28]], r34n: ["3", [30]], r34o: ["4", [6, 7]],
     e5a: ["5", [3]], e5b: ["5", [5, 7]], e5c: ["5", [7]], e5d: ["5", [5]], e5e: ["5", [9]], e5f: ["5", [10]], e5g: ["5", [12]], e5h: ["5", [13]],
-    e5i: ["5", [15]], e5j: ["5", [17]], e5k: ["5", [19]], e5l: ["5", [19]], e5m: ["5", [21]], e5n: ["5", [23]], e5o: ["5", [25]]
+    e5i: ["5", [15]], e5j: ["5", [17]], e5k: ["5", [19]], e5l: ["5", [19]], e5m: ["5", [21]], e5n: ["5", [23]], e5o: ["5", [25]],
+    e6a: ["6", [3]], e6b: ["6", [5]], e6c: ["6", [7]], e6d: ["6", [7]], e6e: ["6", [9]], e6f: ["6", [9]], e6g: ["6", [12]], e6h: ["6", [12]],
+    e6i: ["6", [16]], e6j: ["6", [16]], e6k: ["6", [18]], e6l: ["6", [20]],
+    e7a: ["7", [3]], e7b: ["7", [5]], e7c: ["7", [7]], e7d: ["7", [7]], e7e: ["7", [7]], e7f: ["7", [7]], e7g: ["7", [10]], e7h: ["7", [12]],
+    e7i: ["7", [13]], e7j: ["7", [15]], e7k: ["7", [17]]
   };
   function refHTML(e) {
     var r = REFS[e.id], d = r && DECKS[r[0]];
