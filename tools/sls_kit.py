@@ -43,20 +43,23 @@ def cmd_src(src):
     """οι γραμμές χωρίς » είναι εντολές: παίρνουν μπροστά «> », εκτός αν έχουν ήδη ολόκληρο το prompt"""
     return "\n".join(l if l.startswith("»") or not l or PROMPT.match(l) else "> " + l for l in src.strip("\n").split("\n"))
 
-def term_solution(left, right, foot, size=9):
+def term_solution(left, right, foot, size=9, kicker=None, names=None):
     """λύση ασκήσεων τερματικού: (αρ., εντολές και έξοδος, απαντήσεις) αριστερά και δεξιά.
-    Χωρίς right: ο κώδικας αριστερά, οι απαντήσεις δεξιά."""
+    Χωρίς right: ο κώδικας αριστερά, οι απαντήσεις δεξιά.
+    kicker / names: δικά σου ονόματα αντί για «ΛΥΣΗ ΑΣΚΗΣΗΣ N» / «άσκηση N» (π.χ. τα κεφάλαια ενός παιχνιδιού)."""
     ns = [left[0]] + ([right[0]] if right else [])
     mark_sol(ns)
-    s = new(nxt(), "ΛΥΣΗ ΑΣΚΗΣ" + ("ΕΩΝ " if right else "ΗΣ ") + " · ".join(map(str, ns)), "Τι γράφεις και τι βλέπεις")
+    s = new(nxt(), kicker or "ΛΥΣΗ ΑΣΚΗΣ" + ("ΕΩΝ " if right else "ΗΣ ") + " · ".join(map(str, ns)), "Τι γράφεις και τι βλέπεις")
+    # names: [(ΕΤΙΚΕΤΑ, «Απαντήσεις: …»)] ανά στήλη · χωρίς names: «ΑΣΚΗΣΗ N» / «Απαντήσεις άσκησης N»
+    nm = names or [(f"ΑΣΚΗΣΗ {n}", f"Απαντήσεις άσκησης {n}") for n in ns]
     if right:
-        for (n, src, ans), x, w in ((left, COL_L, COL_W), (right, COL_R, COL_RW)):
-            b = code(s, x, TOP, w, cmd_src(src), size=size, tag=f"ΑΣΚΗΣΗ {n} · ΕΝΤΟΛΕΣ ΚΑΙ ΕΞΟΔΟΣ")
-            card(s, x, b + 137160, w, f"Απαντήσεις άσκησης {n}", ans, tone="gold", size=10.5)
+        for k, ((n, src, ans), x, w) in enumerate(((left, COL_L, COL_W), (right, COL_R, COL_RW))):
+            b = code(s, x, TOP, w, cmd_src(src), size=size, tag=f"{nm[k][0]} · ΕΝΤΟΛΕΣ ΚΑΙ ΕΞΟΔΟΣ")
+            card(s, x, b + 137160, w, nm[k][1], ans, tone="gold", size=10.5)
     else:
         n, src, ans = left
-        code(s, COL_L, TOP, COL_W, cmd_src(src), size=size, tag=f"ΑΣΚΗΣΗ {n} · ΕΝΤΟΛΕΣ ΚΑΙ ΕΞΟΔΟΣ")
-        card(s, COL_R, TOP + 283464, COL_RW, f"Απαντήσεις άσκησης {n}", ans, tone="gold", size=11)
+        code(s, COL_L, TOP, COL_W, cmd_src(src), size=size, tag=f"{nm[0][0]} · ΕΝΤΟΛΕΣ ΚΑΙ ΕΞΟΔΟΣ")
+        card(s, COL_R, TOP + 283464, COL_RW, nm[0][1], ans, tone="gold", size=11)
     footer(s, "ΘΥΜΗΣΟΥ", foot)
     return s
 

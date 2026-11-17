@@ -397,6 +397,150 @@
   /* ================= ΕΡΓΑΣΤΗΡΙΟ ΛΣ: ΑΣΚΗΣΕΙΣ ΑΝΑ ΕΡΓΑΣΤΗΡΙΟ ================= */
   .sl-work { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; min-width: 0; }
   .sl-term { min-width: 0; }
+
+  /* ---------- ΠΑΙΧΝΙΔΙ (escape room): Αποστολή Kastro · πάντα «νύχτα στο κάστρο» ---------- */
+  .py-grid.kg-wide { grid-template-columns: minmax(0, 1fr); }
+  .kg {
+    --kn: #15122c; --kp: #221d44; --kp2: #2c2656; --ki: #f4f1ff; --km: #b9b3dc; --kg: #ffd23f; --kok: #5ef2a8; --kbad: #ff6b81; --kline: #000;
+    position: relative; display: grid; gap: 16px; padding: 18px; border-radius: 20px; border: 2.5px solid var(--kline); box-shadow: 6px 6px 0 var(--kline);
+    background: radial-gradient(1200px 400px at 20% -10%, #3a2f7a 0%, transparent 60%), radial-gradient(800px 300px at 110% 10%, #5b2a6e 0%, transparent 55%), var(--kn);
+    color: var(--ki); overflow: hidden;
+  }
+  .kg::before { /* αστέρια */
+    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+    background-image: radial-gradient(1.5px 1.5px at 10% 20%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 30% 70%, #fff 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 55% 15%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 75% 45%, #fff 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 90% 80%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 45% 90%, #fff 50%, transparent 51%);
+  }
+  .kg > * { position: relative; }
+  .kg h3 { margin: 0; font-size: 24px; font-weight: 900; letter-spacing: .01em; }
+  .kg h4 { margin: 0 0 10px; font-size: 15px; font-weight: 900; }
+  .kg h4 small { font-weight: 600; color: var(--km); font-size: 12px; margin-left: 6px; }
+  .kg-btn {
+    font: inherit; font-weight: 900; font-size: 16px; cursor: pointer; padding: 11px 20px; border-radius: 12px; border: 2.5px solid var(--kline);
+    background: var(--kg); color: #1d1b2f; box-shadow: 4px 4px 0 var(--kline); transition: transform .08s, box-shadow .08s;
+  }
+  .kg-btn:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--kline); }
+  .kg-btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--kline); }
+  .kg-btn.ghost { background: var(--kp2); color: var(--ki); font-size: 14px; padding: 8px 14px; }
+  .kg-btn.arm { background: var(--kbad); color: #fff; }
+  .kg-btn:focus-visible, .kg-node:focus-visible, .kg-hint:focus-visible { outline: 3px solid var(--kg); outline-offset: 2px; }
+
+  /* μπάρα πάνω: λογότυπο, ομάδα, χρόνος, πόντοι, κομμάτια του κωδικού */
+  .kg-hud { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .kg-logo { display: flex; align-items: center; gap: 8px; margin-right: auto; }
+  .kg-logo span { font-size: 28px; }
+  .kg-logo b { font-weight: 900; letter-spacing: .12em; font-size: 15px; }
+  .kg-logo small { color: var(--km); font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  .kg-chip { background: var(--kp); border: 2px solid var(--kline); border-radius: 999px; padding: 5px 12px; font-weight: 800; font-size: 14px; white-space: nowrap; }
+  .kg-chip b { font-family: "JetBrains Mono", monospace; color: var(--kg); }
+  .kg-bag { display: flex; align-items: center; gap: 5px; background: var(--kp); border: 2px solid var(--kline); border-radius: 12px; padding: 4px 8px; font-weight: 800; }
+  .kg-bag.big { justify-content: center; gap: 10px; padding: 10px 14px; margin: 6px auto; width: max-content; max-width: 100%; }
+  .kg-slot {
+    min-width: 30px; height: 30px; display: inline-grid; place-items: center; padding: 0 6px; border-radius: 8px; border: 2px dashed var(--km);
+    font-family: "JetBrains Mono", monospace; font-weight: 700; color: var(--km);
+  }
+  .kg-bag.big .kg-slot { min-width: 54px; height: 54px; font-size: 24px; border-radius: 12px; }
+  .kg-slot.on { border: 2px solid var(--kline); background: var(--kg); color: #1d1b2f; }
+  .kg-slot.pop { animation: kgpop .6s cubic-bezier(.2, 1.6, .4, 1) both; }
+  .kg-dash { font-style: normal; font-weight: 900; color: var(--km); }
+  @keyframes kgpop { from { transform: scale(.2) rotate(-25deg); opacity: 0; } }
+
+  /* χάρτης των κεφαλαίων */
+  .kg-map { display: flex; align-items: center; gap: 0; overflow-x: auto; padding: 4px 2px 8px; }
+  .kg-path { flex: 1 0 18px; height: 4px; border-top: 4px dotted var(--km); opacity: .6; }
+  .kg-node {
+    font: inherit; color: var(--ki); flex: 0 0 auto; display: grid; justify-items: center; gap: 1px; width: 112px; padding: 8px 6px; cursor: pointer;
+    border-radius: 14px; border: 2.5px solid var(--kline); background: var(--kp); box-shadow: 3px 3px 0 var(--kline);
+  }
+  .kg-node .kg-ico { font-size: 24px; line-height: 1.2; }
+  .kg-node small { color: var(--km); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+  .kg-node b { font-size: 13px; line-height: 1.15; text-align: center; }
+  .kg-node.done { background: #134e3a; }
+  .kg-node.done .kg-ico { color: var(--kok); font-weight: 900; }
+  .kg-node.open { background: var(--kp2); }
+  .kg-node.lock { opacity: .45; cursor: not-allowed; box-shadow: none; }
+  .kg-node.here { outline: 3px solid var(--kg); outline-offset: 2px; }
+  .kg-node.vault.open { background: #6b4a00; animation: kgglow 1.6s ease-in-out infinite; }
+  @keyframes kgglow { 50% { box-shadow: 3px 3px 0 var(--kline), 0 0 22px 4px rgba(255,210,63,.55); } }
+
+  /* αρχική οθόνη */
+  .kg-intro { text-align: center; display: grid; gap: 14px; justify-items: center; padding: 10px 0 6px; }
+  .kg-castle { font-size: 72px; line-height: 1; animation: bob 3.5s ease-in-out infinite; }
+  .kg-kick { font-family: "JetBrains Mono", monospace; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--kg); }
+  .kg-title { font-size: clamp(30px, 6vw, 48px) !important; letter-spacing: .06em !important; text-shadow: 4px 4px 0 #000; }
+  .kg-story { max-width: 58ch; display: grid; gap: 6px; }
+  .kg-story p { margin: 0; font-size: 17px; line-height: 1.45; opacity: 0; animation: kgline .7s ease forwards; animation-delay: var(--d); }
+  .kg-story p:last-child { color: var(--kg); font-weight: 900; }
+  @keyframes kgline { from { opacity: 0; transform: translateY(8px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+  .kg-rules { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .kg-rules li { background: var(--kp); border: 2px solid var(--kline); border-radius: 999px; padding: 6px 12px; font-size: 14px; }
+  .kg-start { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .kg-team, .kg-code {
+    font: inherit; font-size: 18px; font-weight: 800; padding: 10px 14px; border-radius: 12px; border: 2.5px solid var(--kline); width: 260px; max-width: 100%;
+    background: #fff; color: #1d1b2f; box-shadow: 4px 4px 0 var(--kline);
+  }
+  .kg-code { font-family: "JetBrains Mono", monospace; text-transform: uppercase; letter-spacing: .12em; text-align: center; }
+
+  /* κεφάλαιο */
+  .kg-chap { display: grid; gap: 14px; }
+  .kg-head { display: flex; align-items: center; gap: 12px; }
+  .kg-head small { font-family: "JetBrains Mono", monospace; color: var(--kg); font-size: 12px; letter-spacing: .12em; }
+  .kg-big { font-size: 44px; line-height: 1; }
+  .kg-msg { display: flex; gap: 12px; align-items: flex-start; background: #fff7dc; color: #1d1b2f; border: 2.5px solid var(--kline); border-radius: 16px; padding: 12px 14px; box-shadow: 4px 4px 0 var(--kline); }
+  .kg-msg p { margin: 0; font-size: 16px; line-height: 1.45; }
+  .kg-ava { font-size: 30px; line-height: 1; }
+  .kg-cols { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px; }
+  .kg-box { background: var(--kp); border: 2.5px solid var(--kline); border-radius: 16px; padding: 14px; }
+  .kg-goals { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .kg-goals li { display: flex; align-items: flex-start; gap: 10px; }
+  .kg-dot { flex: 0 0 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; font-size: 13px; background: var(--kp2); border: 2px solid var(--km); }
+  .kg-goals li.ok .kg-dot { background: var(--kok); color: #10291f; border-color: var(--kline); animation: kgpop .5s cubic-bezier(.2, 1.6, .4, 1) both; }
+  .kg-goals li.ok .kg-gtx { color: var(--km); text-decoration: line-through; text-decoration-color: rgba(94,242,168,.6); }
+  .kg-gt { flex: 1; font-size: 15px; line-height: 1.35; padding-top: 3px; }
+  .kg-help { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .kg-help code { cursor: pointer; font-family: "JetBrains Mono", monospace; font-size: 12.5px; background: #0c0c0c; color: #e6e6e6; padding: 3px 7px; border-radius: 6px; border: 1px solid #444; }
+  .kg-help code:hover { border-color: var(--kg); }
+  .kg-hint { font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; white-space: nowrap; border-radius: 999px; padding: 3px 10px; border: 2px solid var(--kline); background: var(--kp2); color: var(--kg); }
+  .kg-hint.arm { background: var(--kbad); color: #fff; }
+  .kg-q { display: grid; grid-template-columns: minmax(0, 1fr) 120px 18px; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14.5px; }
+  .kg-q.key span { color: var(--kg); font-weight: 800; }
+  .kg-in { font: inherit; font-family: "JetBrains Mono", monospace; font-weight: 700; padding: 7px 9px; border-radius: 10px; border: 2px solid var(--kline); background: #fff; color: #1d1b2f; min-width: 0; }
+  .kg-in.ok { background: #d7f7ea; border-color: #087a52; }
+  .kg-mark { color: var(--kok); font-weight: 900; }
+  .kg-term { min-width: 0; }
+  .kg-tools { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+
+  /* «ολοκληρώθηκε», χρηματοκιβώτιο, νίκη */
+  .kg-over { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; background: rgba(10,8,25,.72); backdrop-filter: blur(3px); padding: 16px; animation: fadein .3s ease; }
+  .kg-card { text-align: center; display: grid; gap: 10px; justify-items: center; background: var(--kp); border: 2.5px solid var(--kline); border-radius: 20px; padding: 24px 28px; box-shadow: 6px 6px 0 var(--kline); max-width: 420px; animation: pop .45s cubic-bezier(.2, 1.4, .4, 1); }
+  .kg-card p { margin: 0; }
+  .kg-plus { font-size: 26px; font-weight: 900; color: var(--kg); }
+  .kg-vault, .kg-win { text-align: center; display: grid; gap: 12px; justify-items: center; padding: 8px 0; }
+  .kg-vault p, .kg-win p { margin: 0; font-size: 16px; }
+  .kg-safe { font-size: 78px; line-height: 1; filter: drop-shadow(4px 4px 0 #000); }
+  .kg-vault.shake .kg-safe, .kg-vault.shake .kg-code { animation: kgshake .45s; }
+  @keyframes kgshake { 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }
+  .kg-err { color: var(--kbad); font-weight: 800; min-height: 1.4em; }
+  .kg-trophy { font-size: 90px; line-height: 1; animation: kgjump 1.2s ease-in-out infinite; }
+  @keyframes kgjump { 50% { transform: translateY(-14px) rotate(-6deg); } }
+  .kg-win h3 { font-size: clamp(26px, 5vw, 40px); color: var(--kg); text-shadow: 3px 3px 0 #000; }
+  .kg-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; width: min(640px, 100%); }
+  .kg-stats div { background: var(--kp); border: 2.5px solid var(--kline); border-radius: 14px; padding: 10px 6px; display: grid; gap: 2px; }
+  .kg-stats small { color: var(--km); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+  .kg-stats b { font-size: 22px; font-family: "JetBrains Mono", monospace; }
+  .kg-note { color: var(--kg); font-weight: 800; }
+  @media (max-width: 640px) {
+    .kg { padding: 12px; }
+    .kg-cols { grid-template-columns: minmax(0, 1fr); }
+    .kg-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kg-node { width: 92px; }
+    .kg-logo small { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .kg *, .kg *::before { animation: none !important; }
+    .kg-story p { opacity: 1; }
+  }
   .sl-ref { margin-top: 10px; font-size: 14px; color: var(--muted); }
   .sl-ref b { color: var(--ink); }
   .sl-ref a { color: var(--blue); font-weight: 800; }
@@ -673,8 +817,8 @@
   <div class="mini" id="mini" role="complementary" aria-label="Η εφαρμογή μου"></div>
 
 <script src="notes.js?v=14"></script>
-<script src="lab.js?v=9"></script>
-<script src="pylab.js?v=10"></script>
+<script src="lab.js?v=10"></script>
+<script src="pylab.js?v=11"></script>
 <script>
 (function () {
   var S = window.SITE, A = S.app;

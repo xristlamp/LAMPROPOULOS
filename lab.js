@@ -2840,58 +2840,63 @@
             { q: "Αντιγράφει ολόκληρο φάκελο με τους υποφακέλους του", a: "xcopy" }, { q: "Πηγαίνει ένα αρχείο σε άλλο φάκελο", a: "move" },
             { q: "Αλλάζει όνομα, όχι θέση", a: "ren" }, { q: "Σβήνει αρχεία", a: "del" }, { q: "Κάνει ένα αρχείο κρυφό ή μόνο για ανάγνωση", a: "attrib" }
           ] },
-        { id: "e5k1", type: "term", os: "windows", tag: "Εύκολο", title: "Kastro · Κεφάλαιο 1: Το σημείωμα", setup: function (s) { kastro(s, 1); },
-          desc: "Η Pixel Owl παραδίδει ΑΥΡΙΟ το παιχνίδι Kastro, αλλά ο προγραμματιστής έφυγε βιαστικά. Άφησε ένα σημείωμα στο Desktop. Διάβασέ το, βρες πού είναι το project και τι πρέπει να γίνει. Κάθε κεφάλαιο δίνει ένα κομμάτι του κωδικού παράδοσης: κράτα τα σε χαρτί!",
-          steps: [
-            { t: "Διάβασε το σημείωμα στο Desktop", hint: ["type Desktop\\SIMEIOMA.txt"], check: function (s) { return H(s, /^type\s+.*simeioma/i); } },
-            { t: "Δες όλο το project σαν δέντρο, με τα αρχεία", hint: ["tree Documents\\PixelOwl /f"], check: function (s) { return H(s, /^tree\s+.*pixelowl.*\/f/i); } },
-            { t: "Μπες στον φάκελο του παιχνιδιού", hint: ["cd Documents\\PixelOwl\\Kastro"], check: function (s) { return cwdIs(s, ["Users", USER, "Documents", "PixelOwl", "Kastro"]); } },
-            { t: "Διάβασε τις οδηγίες της εταιρείας", hint: ["type docs\\ODIGIES.txt"], check: function (s) { return H(s, /^type\s+.*odigies/i); } }
-          ],
-          asks: [
-            { q: "Κομμάτι 1 του κωδικού", a: ["do"] },
-            { q: "Πόσα αρχεία έχει ο φάκελος src;", num: 3 },
-            { q: "Πόσα GB RAM θέλει το παιχνίδι;", num: 8 }
-          ] },
-        { id: "e5k2", type: "term", os: "windows", tag: "Μέτριο", title: "Kastro · Κεφάλαιο 2: Τα κρυμμένα", setup: function (s) { kastro(s, 2); },
-          desc: "«Το dir δεν λέει πάντα όλη την αλήθεια…» έγραφαν οι οδηγίες. Στον φάκελο Kastro κρύβεται ένα αρχείο. Βρες το, διάβασέ το, και κάνε ό,τι σου λέει με τις μασκές * και ?.",
-          steps: [
-            { t: "Μπες στο Kastro και δες τι έχει, και μετά τι κρύβει", hint: ["cd Documents\\PixelOwl\\Kastro", "dir", "dir /a"], check: function (s) { return s.flags.dirAll && cwdIs(s, ["Users", USER, "Documents", "PixelOwl", "Kastro"]); } },
-            { t: "Δες τα χαρακτηριστικά του κρυμμένου αρχείου", hint: ["attrib kleidi.txt"], check: function (s) { return H(s, /^attrib\s+(\S+\\)?kleidi/i); } },
-            { t: "Διάβασέ το", hint: ["type kleidi.txt"], check: function (s) { return H(s, /^type\s+(\S+\\)?kleidi/i); } },
-            { t: "Μέτρα με ΜΙΑ εντολή τα αρχεία level?.dat του assets", hint: ["dir assets\\level?.dat"], check: function (s) { return H(s, /^dir\s+(\S+\\)?assets\\level\?\.dat/i); } },
-            { t: "Δες και πόσες εικόνες .png έχει τώρα το assets", hint: ["dir assets\\*.png"], check: function (s) { return H(s, /^dir\s+(\S+\\)?assets\\\*\.png/i); } }
-          ],
-          asks: [
-            { q: "Κομμάτι 2 του κωδικού", a: ["s"] },
-            { q: "Κομμάτι 3: πόσα αρχεία ταιριάζουν στο level?.dat;", num: 3 },
-            { q: "Ποιο γράμμα του attrib έκρυβε το κλειδί;", a: ["h", "+h"] }
-          ] },
-        { id: "e5k3", type: "term", os: "windows", tag: "Μέτριο", title: "Kastro · Κεφάλαιο 3: Σώσε το project", setup: function (s) { kastro(s, 3); },
-          desc: "Ακολούθησε τις ΟΔΗΓΙΕΣ της εταιρείας: φέρε τα νέα sprites (ΜΟΝΟ τις εικόνες!), τακτοποίησε τις σημειώσεις, άλλαξε το config.ini (που δεν σε αφήνει…) και κράτα αντίγραφο ασφαλείας. Δούλευε από τον φάκελό σου (C:\\Users\\mathitis).",
-          steps: [
-            { t: "Φέρε στο assets μόνο τις εικόνες .png από τα Downloads\\sprites", hint: ["copy Downloads\\sprites\\*.png Documents\\PixelOwl\\Kastro\\assets"], check: function (s) { return kas(s, ["assets", "boss.png"]) && kas(s, ["assets", "coin.png"]); } },
-            { t: "Μετακίνησε το assets\\notes.txt στο docs με όνομα changelog.txt", hint: ["move Documents\\PixelOwl\\Kastro\\assets\\notes.txt Documents\\PixelOwl\\Kastro\\docs\\changelog.txt"], check: function (s) { return kas(s, ["docs", "changelog.txt"]) && !kas(s, ["assets", "notes.txt"]); } },
-            { t: "Γράψε release=yes στο config.ini (αν σε αφήσει…)", hint: ["cd Documents\\PixelOwl\\Kastro", "echo release=yes >> config.ini", "attrib config.ini", "attrib -r config.ini", "echo release=yes >> config.ini"], check: function (s) { var r = kas(s, ["config.ini"]); return !!(r && /release=yes/.test(r.n.x)); } },
-            { t: "Κράτα αντίγραφο ασφαλείας όλου του Kastro στο Backup\\Kastro", hint: ["cd %USERPROFILE%", "xcopy Documents\\PixelOwl\\Kastro Backup\\Kastro /e /i"], check: function (s) { return !!node(s, ["Backup", "Kastro", "src", "main.js"]); } }
-          ],
-          asks: [
-            { q: "Ποιο αρχείο των sprites ΔΕΝ αντέγραψες;", a: [/dragon/] },
-            { q: "Κομμάτι 4: πόσες εικόνες .png έχει τώρα το assets;", num: 5 },
-            { q: "Τι απάντησε το echo όσο το config.ini ήταν +R; (στα αγγλικά)", a: [/access is denied/] }
-          ] },
-        { id: "e5k4", type: "term", os: "windows", tag: "Ο στόχος", title: "Kastro · Κεφάλαιο 4: Το release", setup: function (s) { kastro(s, 4); },
-          desc: "Τελευταίο κεφάλαιο! Έλεγξε ότι ο υπολογιστής τρέχει το παιχνίδι και γράψε στο Kastro ένα build.bat που φτιάχνει τον φάκελο παράδοσης release\\game (src, assets και config.ini) και γράφει το δέντρο του στο release.txt. Μετά δώσε τον κωδικό παράδοσης: κομμάτι 1, κομμάτι 2, παύλα, κομμάτι 3, κομμάτι 4.",
-          steps: [
-            { t: "Στο Kastro, έλεγξε RAM και κάρτα ήχου", hint: ["cd Documents\\PixelOwl\\Kastro", 'systeminfo | find "Total Physical Memory"', 'driverquery | find "Audio"'], check: function (s) { return H(s, /^systeminfo\b.*\|\s*find/i) && H(s, /^driverquery\b.*\|\s*find\b.*audio/i); } },
-            { t: "Γράψε το build.bat", hint: ["echo @echo off > build.bat", "echo md release\\game >> build.bat", "echo xcopy src release\\game\\src /e /i >> build.bat", "echo xcopy assets release\\game\\assets /e /i >> build.bat", "echo copy config.ini release\\game >> build.bat", "echo tree release /f ^> release.txt >> build.bat", "echo echo Etoimo! >> build.bat"], check: function (s) { var l = kasLines(s, "build.bat"); return l.some(function (x) { return /^\s*xcopy\s+src\b/i.test(x); }) && l.some(function (x) { return /^\s*xcopy\s+assets\b/i.test(x); }); } },
-            { t: "Τρέξ' το", hint: ["build"], check: function (s) { return (s.bats || []).some(function (b) { return b.name === "build.bat"; }) && kas(s, ["release", "game", "src", "main.js"]) && kas(s, ["release", "game", "assets", "boss.png"]) && kas(s, ["release", "game", "config.ini"]); } },
-            { t: "Δες το release.txt", hint: ["type release.txt"], check: function (s) { var r = kas(s, ["release.txt"]); return !!(r && /main\.js/i.test(r.n.x)) && H(s, /^type\s+release\.txt/i); } }
-          ],
-          asks: [
-            { q: "Τρέχει το Kastro σε αυτόν τον υπολογιστή; (ναι / όχι)", a: ["ναι", "nai", "yes"] },
-            { q: "Πόσα αρχεία έχει το release\\game\\assets;", a: function (s) { var r = kas(s, ["release", "game", "assets"]); return r ? [String(Object.keys(r.n.c).filter(function (k) { return r.n.c[k].t === "f"; }).length)] : ["11"]; } },
-            { q: "🔑 Ο κωδικός παράδοσης", a: [/^dos\W*35$/] }
+        { id: "e5kastro", type: "game", os: "windows", tag: "Ο στόχος", title: "🦉 Αποστολή Kastro",
+          desc: "Το escape room του εργαστηρίου, σε ομάδες: 4 κεφάλαια, ένας κωδικός παράδοσης, χρονόμετρο και πόντοι. Κάθε υπόδειξη κοστίζει 2 πόντους. Όταν τελειώσετε, δείξτε την οθόνη της νίκης στον εκπαιδευτή!",
+          intro: ["Η Pixel Owl είναι μια μικρή εταιρεία που φτιάχνει παιχνίδια.", "Αύριο παραδίδει το Kastro, το πιο μεγάλο της παιχνίδι.", "Ο προγραμματιστής, ο Άρης, αρρώστησε κι έφυγε βιαστικά.",
+            "Τα αρχεία είναι μισοτελειωμένα. Κάπου έχει κρύψει τον κωδικό παράδοσης.", "Η ομάδα σας είναι οι τεχνικοί που θα σώσουν το project.", "Το μόνο σας εργαλείο: η Γραμμή εντολών."],
+          code: /^dos\W*35$/, codeFormat: "κομμάτι 1 · κομμάτι 2 – κομμάτι 3 · κομμάτι 4",
+          chapters: [
+            { title: "Το σημείωμα", icon: "📜", setup: function (s) { kastro(s, 1); },
+              story: "Ο Άρης άφησε ένα σημείωμα στο Desktop. Διαβάστε το, βρείτε πού είναι το project και τι ζητά η εταιρεία πριν την παράδοση.",
+              steps: [
+                { t: "Διαβάστε το σημείωμα στο Desktop", hint: ["type Desktop\\SIMEIOMA.txt"], check: function (s) { return H(s, /^type\s+.*simeioma/i); } },
+                { t: "Δείτε όλο το project σαν δέντρο, με τα αρχεία", hint: ["tree Documents\\PixelOwl /f"], check: function (s) { return H(s, /^tree\s+.*pixelowl.*\/f/i); } },
+                { t: "Μπείτε στον φάκελο του παιχνιδιού", hint: ["cd Documents\\PixelOwl\\Kastro"], check: function (s) { return cwdIs(s, ["Users", USER, "Documents", "PixelOwl", "Kastro"]); } },
+                { t: "Διαβάστε τις οδηγίες της εταιρείας", hint: ["type docs\\ODIGIES.txt"], check: function (s) { return H(s, /^type\s+.*odigies/i); } }
+              ],
+              asks: [
+                { q: "Κομμάτι 1 του κωδικού", a: ["do"], piece: 0 },
+                { q: "Πόσα αρχεία έχει ο φάκελος src;", num: 3 },
+                { q: "Πόσα GB RAM θέλει το παιχνίδι;", num: 8 }
+              ] },
+            { title: "Τα κρυμμένα", icon: "🕵️", setup: function (s) { kastro(s, 2); },
+              story: "«Το dir δεν λέει πάντα όλη την αλήθεια…» έγραφαν οι οδηγίες. Στον φάκελο Kastro κρύβεται ένα αρχείο. Βρείτε το, διαβάστε το και κάντε ό,τι λέει.",
+              steps: [
+                { t: "Μπείτε στο Kastro και δείτε τι κρύβει", hint: ["cd Documents\\PixelOwl\\Kastro", "dir", "dir /a"], check: function (s) { return s.flags.dirAll && cwdIs(s, ["Users", USER, "Documents", "PixelOwl", "Kastro"]); } },
+                { t: "Δείτε τα χαρακτηριστικά του κρυμμένου αρχείου", hint: ["attrib kleidi.txt"], check: function (s) { return H(s, /^attrib\s+(\S+\\)?kleidi/i); } },
+                { t: "Διαβάστε το", hint: ["type kleidi.txt"], check: function (s) { return H(s, /^type\s+(\S+\\)?kleidi/i); } },
+                { t: "Μετρήστε με ΜΙΑ εντολή τα level?.dat του assets", hint: ["dir assets\\level?.dat"], check: function (s) { return H(s, /^dir\s+(\S+\\)?assets\\level\?\.dat/i); } }
+              ],
+              asks: [
+                { q: "Κομμάτι 2 του κωδικού", a: ["s"], piece: 1 },
+                { q: "Κομμάτι 3: πόσα αρχεία ταιριάζουν στο level?.dat;", num: 3, piece: 2 },
+                { q: "Ποιο γράμμα του attrib έκρυβε το κλειδί;", a: ["h", "+h"] }
+              ] },
+            { title: "Σώστε το project", icon: "🛟", setup: function (s) { kastro(s, 3); },
+              story: "Κάντε ό,τι ζητούν οι ΟΔΗΓΙΕΣ: φέρτε τα νέα sprites (ΜΟΝΟ τις εικόνες!), τακτοποιήστε τις σημειώσεις, γράψτε release=yes στο config.ini (που δεν σας αφήνει…) και κρατήστε αντίγραφο ασφαλείας.",
+              steps: [
+                { t: "Φέρτε στο assets μόνο τις εικόνες .png των Downloads\\sprites", hint: ["copy Downloads\\sprites\\*.png Documents\\PixelOwl\\Kastro\\assets"], check: function (s) { return kas(s, ["assets", "boss.png"]) && kas(s, ["assets", "coin.png"]); } },
+                { t: "Το assets\\notes.txt στο docs, με όνομα changelog.txt", hint: ["move Documents\\PixelOwl\\Kastro\\assets\\notes.txt Documents\\PixelOwl\\Kastro\\docs\\changelog.txt"], check: function (s) { return kas(s, ["docs", "changelog.txt"]) && !kas(s, ["assets", "notes.txt"]); } },
+                { t: "release=yes στο config.ini (αν σας αφήσει…)", hint: ["cd Documents\\PixelOwl\\Kastro", "echo release=yes >> config.ini", "attrib config.ini", "attrib -r config.ini", "echo release=yes >> config.ini"], check: function (s) { var r = kas(s, ["config.ini"]); return !!(r && /release=yes/.test(r.n.x)); } },
+                { t: "Αντίγραφο ασφαλείας όλου του Kastro στο Backup\\Kastro", hint: ["cd %USERPROFILE%", "xcopy Documents\\PixelOwl\\Kastro Backup\\Kastro /e /i"], check: function (s) { return !!node(s, ["Backup", "Kastro", "src", "main.js"]); } }
+              ],
+              asks: [
+                { q: "Ποιο αρχείο των sprites ΔΕΝ αντιγράψατε;", a: [/dragon/] },
+                { q: "Κομμάτι 4: πόσες εικόνες .png έχει τώρα το assets;", num: 5, piece: 3 },
+                { q: "Τι απάντησε το echo όσο το config.ini ήταν +R; (στα αγγλικά)", a: [/access is denied/] }
+              ] },
+            { title: "Το release", icon: "📦", setup: function (s) { kastro(s, 4); },
+              story: "Τελευταίο κεφάλαιο! Ελέγξτε ότι ο υπολογιστής τρέχει το παιχνίδι και γράψτε στο Kastro ένα build.bat που φτιάχνει τον φάκελο παράδοσης release\\game (src, assets, config.ini) και γράφει το δέντρο του στο release.txt.",
+              steps: [
+                { t: "Στο Kastro, ελέγξτε RAM και κάρτα ήχου", hint: ["cd Documents\\PixelOwl\\Kastro", 'systeminfo | find "Total Physical Memory"', 'driverquery | find "Audio"'], check: function (s) { return H(s, /^systeminfo\b.*\|\s*find/i) && H(s, /^driverquery\b.*\|\s*find\b.*audio/i); } },
+                { t: "Γράψτε το build.bat", hint: ["echo @echo off > build.bat", "echo md release\\game >> build.bat", "echo xcopy src release\\game\\src /e /i >> build.bat", "echo xcopy assets release\\game\\assets /e /i >> build.bat", "echo copy config.ini release\\game >> build.bat", "echo tree release /f ^> release.txt >> build.bat", "echo echo Etoimo! >> build.bat"], check: function (s) { var l = kasLines(s, "build.bat"); return l.some(function (x) { return /^\s*xcopy\s+src\b/i.test(x); }) && l.some(function (x) { return /^\s*xcopy\s+assets\b/i.test(x); }); } },
+                { t: "Τρέξτε το", hint: ["build"], check: function (s) { return (s.bats || []).some(function (b) { return b.name === "build.bat"; }) && kas(s, ["release", "game", "src", "main.js"]) && kas(s, ["release", "game", "assets", "boss.png"]) && kas(s, ["release", "game", "config.ini"]); } },
+                { t: "Δείτε το release.txt", hint: ["type release.txt"], check: function (s) { var r = kas(s, ["release.txt"]); return !!(r && /main\.js/i.test(r.n.x)) && H(s, /^type\s+release\.txt/i); } }
+              ],
+              asks: [
+                { q: "Τρέχει το Kastro σε αυτόν τον υπολογιστή; (ναι / όχι)", a: ["ναι", "nai", "yes"] },
+                { q: "Πόσα αρχεία έχει το release\\game\\assets;", num: 11 }
+              ] }
           ] },
         { id: "e5m", type: "quiz", tag: "Δύσκολο", title: "Τι θα γίνει αν…;",
           desc: "Πρόβλεψε τι θα κάνει κάθε εντολή ΠΡΙΝ τη δοκιμάσεις. Μετά, αν θες, δοκίμασέ τες στο ελεύθερο τερματικό.",
@@ -3242,7 +3247,7 @@
     return best;
   }
   function firstOpen(l) { var i = l.ex.findIndex(function (x) { return !isDone(x); }); return i < 0 ? 0 : i; }
-  function typeLabel(e) { return e.type === "quiz" ? "❓ κουίζ" : e.type === "gantt" ? "📊 Gantt" : e.os === "linux" ? "🐧 bash" : "🪟 cmd"; }
+  function typeLabel(e) { return e.type === "game" ? "🎮 παιχνίδι" : e.type === "quiz" ? "❓ κουίζ" : e.type === "gantt" ? "📊 Gantt" : e.os === "linux" ? "🐧 bash" : "🪟 cmd"; }
   function lname(l) { return l.label || "Εργαστήριο " + l.num; }   // label: π.χ. «Επανάληψη 3–4» αντί για «Εργαστήριο N»
   function lessonDone(l) { return l.ex.filter(isDone).length; }
 
@@ -3332,7 +3337,7 @@
     e4k: ["4", [30]], e4l: ["4", [30]], e4m: ["4", [32]], e4n: ["4", [32]], e4o: ["4", [34]], e4p: ["4", [34]],
     r34a: ["4", [3, 37]], r34b: ["3", [6, 15]], r34c: ["3", [10, 15]], r34d: ["4", [6, 7]], r34e: ["4", [13]], r34f: ["4", [24, 25]], r34g: ["4", [18]], r34h: ["4", [21]],
     r34i: ["4", [3, 25]], r34j: ["4", [6, 7]], r34k: ["4", [13]], r34l: ["4", [26, 27]], r34m: ["3", [28]], r34n: ["3", [30]], r34o: ["4", [6, 7]],
-    e5w: ["5", [4]], e5k1: ["5", [6, 7]], e5k2: ["5", [5, 8]], e5k3: ["5", [5, 9]], e5k4: ["5", [5, 10]], e5m: ["5", [12]], e5n: ["5", [14]], e5o: ["5", [15]],
+    e5w: ["5", [4]], e5kastro: ["5", [6, 7, 8, 9, 10]], e5m: ["5", [12]], e5n: ["5", [14]], e5o: ["5", [15]],
     e6a: ["6", [3]], e6b: ["6", [5]], e6c: ["6", [7]], e6d: ["6", [7]], e6e: ["6", [9]], e6f: ["6", [9]], e6g: ["6", [12]], e6h: ["6", [12]],
     e6i: ["6", [16]], e6j: ["6", [16]], e6k: ["6", [18]], e6l: ["6", [20]],
     e7a: ["7", [3]], e7b: ["7", [5]], e7c: ["7", [7]], e7d: ["7", [7]], e7e: ["7", [7]], e7f: ["7", [7]], e7g: ["7", [10]], e7h: ["7", [12]],
@@ -3351,7 +3356,10 @@
     var l = curLesson(), e = l.ex[L.idx] || l.ex[0], box = L.el.querySelector(".sl-work");
     L.ex = e;
     paintTask();
-    if (e.type === "quiz") quizView(box, e);
+    var grid = L.el.querySelector(".py-grid");
+    if (grid) grid.classList.toggle("kg-wide", e.type === "game");   // το παιχνίδι πιάνει όλο το πλάτος
+    if (e.type === "game") gameView(box, e);
+    else if (e.type === "quiz") quizView(box, e);
     else if (e.type === "gantt") ganttView(box, e);
     else termView(box, e);
   }
@@ -3684,6 +3692,227 @@
       clearTimeout(s.timer);
       exSims[e.id] = exSim(e, s.stepOk.slice());
       termView(box, e);
+    });
+  }
+
+  // ================= ΠΑΙΧΝΙΔΙ (escape room) =================
+  // type: "game" — intro: [γραμμές ιστορίας], chapters: [{ title, icon, story, setup, steps, asks }], code: /regex/ (ο κωδικός παράδοσης)
+  // Στα asks, piece: N = η απάντηση είναι το κομμάτι N του κωδικού (γεμίζει το «σακίδιο»).
+  // Πόντοι: +10 κάθε κεφάλαιο, +20 η παράδοση, −2 κάθε υπόδειξη, −1 κάθε λάθος κωδικός. Η κατάσταση μένει στον browser της ομάδας.
+  var G_PTS = { chapter: 10, vault: 20, hint: 2, wrong: 1 }, gSims = {}, GV = null;
+  function gState(e, v) {
+    var k = "sls:game:" + e.id, st;
+    if (v !== undefined) { store(k, JSON.stringify(v)); return v; }
+    try { st = JSON.parse(store(k)) || {}; } catch (x) { st = {}; }
+    st.ok = st.ok || e.chapters.map(function () { return []; });
+    st.ans = st.ans || e.chapters.map(function () { return []; });
+    st.done = st.done || e.chapters.map(function () { return false; });
+    st.seen = st.seen || [];
+    st.hints = st.hints || {};
+    st.wrong = st.wrong || 0;
+    st.cur = st.cur || 0;
+    return st;
+  }
+  function gScore(st) {
+    return Math.max(0, st.done.filter(Boolean).length * G_PTS.chapter + (st.won ? G_PTS.vault : 0) - Object.keys(st.hints).length * G_PTS.hint - st.wrong * G_PTS.wrong);
+  }
+  function gClock(st) {
+    if (!st.t0) return "00:00";
+    var sec = Math.max(0, Math.floor(((st.t1 || Date.now()) - st.t0) / 1000));
+    return (sec >= 3600 ? Math.floor(sec / 3600) + ":" : "") + two(Math.floor(sec / 60) % 60) + ":" + two(sec % 60);
+  }
+  function gAskOk(ch, c, i, v) { return askOk(ch, gSims[GV.e.id + ":" + c] || {}, i, v); }
+  function gPieces(e, st) {   // τα κομμάτια του κωδικού: [τιμή ή null]
+    var out = [];
+    e.chapters.forEach(function (ch, c) {
+      (ch.asks || []).forEach(function (q, i) {
+        if (q.piece == null) return;
+        var v = st.ans[c][i];
+        out[q.piece] = v && askOk(ch, {}, i, v) ? (q.num != null ? String(q.num) : String(v).trim().toUpperCase()) : null;
+      });
+    });
+    return out;
+  }
+  function gSim(e, c, fresh) {
+    var key = e.id + ":" + c;
+    if (!fresh && gSims[key]) return gSims[key];
+    var s = newSim(e.os || "windows"), ch = e.chapters[c];
+    if (ch.setup) ch.setup(s);
+    s.stepOk = (gState(e).ok[c] || []).slice();
+    s.after = function (s) { gAfter(e, c, s); };
+    return (gSims[key] = s);
+  }
+  function gAfter(e, c, s) {
+    var ch = e.chapters[c], newly = [];
+    ch.steps.forEach(function (x, i) { if (!s.stepOk[i] && x.check(s)) { s.stepOk[i] = true; newly.push(i); } });
+    if (!newly.length) return;
+    newly.forEach(function (i) { print(s, G("✔ Στόχος " + (i + 1) + ": " + ch.steps[i].t)); });
+    var st = gState(e); st.ok[c] = s.stepOk.slice(); gState(e, st);
+    if (GV && GV.e === e && GV.c === c) { gGoals(); gCheck(); }
+  }
+  // ολοκληρώθηκε το κεφάλαιο; (όλοι οι στόχοι και όλα τα ερωτήματα)
+  function gCheck() {
+    var e = GV.e, c = GV.c, ch = e.chapters[c], st = gState(e);
+    if (st.done[c]) return;
+    if (!ch.steps.every(function (x, i) { return st.ok[c][i]; })) return;
+    if (!(ch.asks || []).every(function (q, i) { return gAskOk(ch, c, i, st.ans[c][i]); })) {
+      var s = gSims[e.id + ":" + c];
+      if (s && !s.askNag) { s.askNag = 1; print(s, T("Όλοι οι στόχοι έγιναν! Συμπληρώστε τώρα τα ερωτήματα πάνω από το τερματικό.")); }
+      return;
+    }
+    st.done[c] = true; gState(e, st);
+    gDraw();
+  }
+
+  function gameView(box, e) {
+    clearInterval(GV && GV.timer);
+    GV = { e: e, box: box, c: gState(e).cur };
+    GV.timer = setInterval(function () {
+      var el = GV && GV.box.querySelector(".kg-clock");
+      if (!el) { clearInterval(GV && GV.timer); return; }
+      el.textContent = gClock(gState(GV.e));
+    }, 1000);
+    gDraw();
+  }
+  function gHud(e, st) {
+    var p = gPieces(e, st), slots = p.map(function (v, i) {
+      return (i === 2 ? '<i class="kg-dash">–</i>' : "") + '<span class="kg-slot' + (v ? " on" : "") + '" title="Κομμάτι ' + (i + 1) + '">' + (v ? esc(v) : "?") + "</span>";
+    }).join("");
+    return '<div class="kg-hud"><div class="kg-logo"><span>🦉</span><b>PIXEL OWL</b><small>αποστολή Kastro</small></div>' +
+      (st.team ? '<div class="kg-chip">👥 ' + esc(st.team) + "</div>" : "") +
+      '<div class="kg-chip">⏱ <b class="kg-clock">' + gClock(st) + '</b></div><div class="kg-chip">⭐ <b>' + gScore(st) + "</b></div>" +
+      '<div class="kg-bag" title="Ο κωδικός παράδοσης">🔑 ' + slots + "</div></div>";
+  }
+  function gMap(e, st) {
+    var all = st.done.every(Boolean);
+    return '<div class="kg-map">' + e.chapters.map(function (ch, c) {
+      var open = c === 0 || st.done[c - 1], cls = st.done[c] ? "done" : open ? "open" : "lock";
+      return '<button type="button" class="kg-node ' + cls + (GV.screen === "chap" && GV.c === c ? " here" : "") + '" data-node="' + c + '"' + (open ? "" : " disabled") + ">" +
+        '<span class="kg-ico">' + (st.done[c] ? "✓" : open ? ch.icon : "🔒") + "</span><small>Κεφ. " + (c + 1) + "</small><b>" + esc(ch.title) + "</b></button>";
+    }).join('<i class="kg-path"></i>') + '<i class="kg-path"></i>' +
+      '<button type="button" class="kg-node vault ' + (st.won ? "done" : all ? "open" : "lock") + (GV.screen === "vault" ? " here" : "") + '" data-node="vault"' + (all ? "" : " disabled") + ">" +
+      '<span class="kg-ico">' + (st.won ? "🏆" : all ? "🔐" : "🔒") + "</span><small>Τέλος</small><b>Η παράδοση</b></button></div>";
+  }
+  function gDraw() {
+    var e = GV.e, st = gState(e), box = GV.box, html;
+    GV.screen = !st.t0 ? "intro" : st.won ? "win" : GV.c === "vault" ? "vault" : "chap";
+    if (GV.screen === "intro") {
+      html = '<div class="kg-intro"><div class="kg-castle" aria-hidden="true">🏰</div><div class="kg-kick">Escape room στη Γραμμή εντολών</div><h3 class="kg-title">ΑΠΟΣΤΟΛΗ KASTRO</h3>' +
+        '<div class="kg-story">' + e.intro.map(function (l, i) { return '<p style="--d:' + (0.3 + i * 0.7) + 's">' + esc(l) + "</p>"; }).join("") + "</div>" +
+        '<ul class="kg-rules"><li>🗺 <b>4 κεφάλαια</b> και η παράδοση</li><li>🔑 κάθε κεφάλαιο κρύβει <b>κομμάτια του κωδικού</b></li><li>⏱ το χρονόμετρο ξεκινά τώρα</li><li>💡 κάθε υπόδειξη: <b>−' + G_PTS.hint + " πόντοι</b></li></ul>" +
+        '<div class="kg-start"><input class="kg-team" maxlength="24" placeholder="Όνομα ομάδας" aria-label="Όνομα ομάδας" value="' + esc(st.team || "") + '"><button type="button" class="kg-btn" data-g="start">▶ Ξεκινάμε!</button></div></div>';
+    } else if (GV.screen === "win") {
+      html = gHud(e, st) + '<div class="kg-win"><div class="kg-trophy" aria-hidden="true">🏆</div><h3>ΤΟ KASTRO ΠΑΡΑΔΟΘΗΚΕ!</h3><p>Η ομάδα <b>' + esc(st.team || "χωρίς όνομα") + "</b> έσωσε την Pixel Owl.</p>" +
+        '<div class="kg-stats"><div><small>Χρόνος</small><b>' + gClock(st) + '</b></div><div><small>Πόντοι</small><b>⭐ ' + gScore(st) + '</b></div><div><small>Υποδείξεις</small><b>💡 ' + Object.keys(st.hints).length +
+        '</b></div><div><small>Λάθος κωδικοί</small><b>❌ ' + st.wrong + "</b></div></div>" +
+        '<p class="kg-note">📸 Δείξτε αυτή την οθόνη στον εκπαιδευτή.</p><button type="button" class="kg-btn ghost" data-g="again">↺ Νέο παιχνίδι</button></div>';
+    } else if (GV.screen === "vault") {
+      var p = gPieces(e, st);
+      html = gHud(e, st) + gMap(e, st) + '<div class="kg-vault' + (GV.shake ? " shake" : "") + '"><div class="kg-safe" aria-hidden="true">🔐</div><h3>Η παράδοση</h3>' +
+        "<p>Ενώστε τα κομμάτια σας: <b>" + esc(e.codeFormat) + "</b></p>" +
+        '<div class="kg-bag big">' + p.map(function (v, i) { return (i === 2 ? '<i class="kg-dash">–</i>' : "") + '<span class="kg-slot on">' + esc(v || "?") + "</span>"; }).join("") + "</div>" +
+        '<div class="kg-start"><input class="kg-code" maxlength="16" placeholder="Ο κωδικός" aria-label="Ο κωδικός παράδοσης" autocomplete="off" spellcheck="false"><button type="button" class="kg-btn" data-g="open">🔓 Άνοιξε</button></div>' +
+        '<p class="kg-err">' + (GV.shake ? "❌ Λάθος κωδικός! −" + G_PTS.wrong + " πόντος. Ξαναμετρήστε τα κομμάτια σας." : "&nbsp;") + "</p></div>";
+      GV.shake = false;
+    } else {
+      var c = GV.c, ch = e.chapters[c], s = gSim(e, c);
+      current = s;
+      html = gHud(e, st) + gMap(e, st) +
+        '<div class="kg-chap"><div class="kg-head"><span class="kg-big">' + ch.icon + "</span><div><small>ΚΕΦΑΛΑΙΟ " + (c + 1) + " / " + e.chapters.length + "</small><h3>" + esc(ch.title) + "</h3></div></div>" +
+        '<div class="kg-msg"><span class="kg-ava" aria-hidden="true">🦉</span><p>' + esc(ch.story) + "</p></div>" +
+        '<div class="kg-cols"><div class="kg-box"><h4>🎯 Στόχοι</h4><ol class="kg-goals"></ol></div>' +
+        '<div class="kg-box"><h4>🔎 Ερωτήματα <small>η απάντηση είναι στην έξοδο των εντολών</small></h4>' + (ch.asks || []).map(function (q, i) {
+          var v = st.ans[c][i] || "", ok = v && gAskOk(ch, c, i, v);
+          return '<label class="kg-q' + (q.piece != null ? " key" : "") + '"><span>' + (q.piece != null ? "🔑 " : "") + esc(q.q) + "</span>" +
+            '<input class="kg-in' + (ok ? " ok" : "") + '" data-q="' + i + '" autocomplete="off" autocapitalize="off" spellcheck="false" value="' + esc(v) + '"><b class="kg-mark">' + (ok ? "✓" : "") + "</b></label>";
+        }).join("") + "</div></div>" +
+        '<div class="kg-term">' + vtHTML(s) + "</div>" +
+        '<div class="kg-tools"><button type="button" class="kg-btn ghost" data-g="reset" title="Τα αρχεία του κεφαλαίου ξαναστήνονται από την αρχή· οι στόχοι που πετύχατε μένουν">↺ Ξαναστήσε τα αρχεία</button>' +
+        '<button type="button" class="kg-btn ghost" data-g="restart">⏹ Νέα ομάδα</button></div></div>' +
+        (st.done[c] && st.seen.indexOf(c) < 0 ? gDoneCard(e, st, c) : "");
+    }
+    box.innerHTML = '<div class="kg kg-' + GV.screen + '">' + html + "</div>";
+    gBind();
+    if (GV.screen === "chap") { gGoals(); bindVT(box.querySelector(".kg-term")); }
+    var f = box.querySelector(".kg-team, .kg-code");
+    if (f) try { f.focus({ preventScroll: true }); } catch (x) { /* */ }
+  }
+  function gDoneCard(e, st, c) {
+    var ch = e.chapters[c], got = (ch.asks || []).filter(function (q) { return q.piece != null; }).map(function (q) { return gPieces(e, st)[q.piece]; });
+    var last = c === e.chapters.length - 1;
+    return '<div class="kg-over"><div class="kg-card"><div class="kg-big">' + ch.icon + "</div><h3>Κεφάλαιο " + (c + 1) + " · ολοκληρώθηκε!</h3>" +
+      '<p class="kg-plus">+' + G_PTS.chapter + " ⭐</p>" +
+      (got.length ? "<p>Βρήκατε " + (got.length > 1 ? "τα κομμάτια" : "το κομμάτι") + ' του κωδικού:</p><div class="kg-bag big">' + got.map(function (v) { return '<span class="kg-slot on pop">' + esc(v) + "</span>"; }).join("") + "</div>" : "") +
+      '<button type="button" class="kg-btn" data-g="next">' + (last ? "🔐 Στην παράδοση!" : "Κεφάλαιο " + (c + 2) + " ▶") + "</button></div></div>";
+  }
+  function gGoals() {
+    var e = GV.e, c = GV.c, ch = e.chapters[c], st = gState(e), ol = GV.box.querySelector(".kg-goals");
+    if (!ol) return;
+    ol.innerHTML = ch.steps.map(function (x, i) {
+      var ok = st.ok[c][i], used = st.hints[c + ":" + i];
+      return '<li class="' + (ok ? "ok" : "") + '"><span class="kg-dot">' + (ok ? "✓" : i + 1) + '</span><span class="kg-gt"><span class="kg-gtx">' + esc(x.t) + "</span>" +
+        (used ? '<span class="kg-help">' + x.hint.map(function (h) { return '<code data-cmd="' + esc(h) + '">' + esc(h) + "</code>"; }).join(" ") + "</span>" : "") + "</span>" +
+        (ok || used ? "" : '<button type="button" class="kg-hint" data-hint="' + i + '">💡 −' + G_PTS.hint + "</button>") + "</li>";
+    }).join("");
+  }
+  function gBind() {
+    var e = GV.e, box = GV.box, root_ = box.firstChild;
+    root_.addEventListener("click", function (ev) {
+      var t = ev.target, st = gState(e);
+      var cmd = t.closest("[data-cmd]");
+      if (cmd) { fillCmd(cmd.dataset.cmd); return; }
+      var hb = t.closest("[data-hint]");
+      if (hb) {   // 1ο κλικ: «Σίγουρα;» · 2ο κλικ: ανοίγει η υπόδειξη και χάνονται πόντοι
+        if (!hb.classList.contains("arm")) { hb.classList.add("arm"); hb.textContent = "Σίγουρα; −" + G_PTS.hint + " ⭐"; setTimeout(function () { if (hb.isConnected) { hb.classList.remove("arm"); hb.textContent = "💡 −" + G_PTS.hint; } }, 3500); return; }
+        st.hints[GV.c + ":" + hb.dataset.hint] = 1; gState(e, st);
+        box.querySelector(".kg-hud").outerHTML = gHud(e, st);
+        gGoals(); return;
+      }
+      var node = t.closest("[data-node]");
+      if (node && !node.disabled) { GV.c = node.dataset.node === "vault" ? "vault" : +node.dataset.node; if (GV.c !== "vault") { st.cur = GV.c; gState(e, st); } gDraw(); return; }
+      var b = t.closest("[data-g]");
+      if (!b) return;
+      var act = b.dataset.g;
+      if (act === "start") {
+        st.team = (box.querySelector(".kg-team").value || "").trim().slice(0, 24) || "Ομάδα χωρίς όνομα";
+        st.t0 = Date.now(); gState(e, st); GV.c = 0; gDraw();
+      } else if (act === "next") {
+        if (st.seen.indexOf(GV.c) < 0) st.seen.push(GV.c);
+        var nextC = GV.c + 1;
+        GV.c = nextC < e.chapters.length ? nextC : "vault";
+        if (GV.c !== "vault") st.cur = GV.c;
+        gState(e, st); gDraw();
+      } else if (act === "reset") {
+        clearTimeout((gSims[e.id + ":" + GV.c] || {}).timer);
+        gSim(e, GV.c, true); gDraw();
+      } else if (act === "open") {
+        var v = norm(box.querySelector(".kg-code").value);
+        if (!v) return;
+        if (e.code.test(v)) {
+          st.won = true; st.t1 = Date.now(); gState(e, st); gDraw();
+          solved(e); api.celebrate("🏆 Το Kastro παραδόθηκε! Ομάδα " + st.team + " · " + gClock(st) + " · " + gScore(st) + " ⭐");
+        } else { st.wrong++; gState(e, st); GV.shake = true; gDraw(); }
+      } else if (act === "again" || act === "restart") {
+        if (!b.classList.contains("arm")) { b.classList.add("arm"); b.textContent = "Σίγουρα; Όλα από την αρχή"; return; }
+        store("sls:game:" + e.id, ""); Object.keys(gSims).forEach(function (k) { if (k.indexOf(e.id + ":") === 0) delete gSims[k]; });
+        GV.c = 0; gDraw();
+      }
+    });
+    root_.addEventListener("input", function (ev) {
+      var inp = ev.target.closest("[data-q]");
+      if (!inp) return;
+      var st = gState(e), c = GV.c, i = +inp.dataset.q, ch = e.chapters[c];
+      st.ans[c][i] = inp.value; gState(e, st);
+      var ok = gAskOk(ch, c, i, inp.value);
+      inp.classList.toggle("ok", ok);
+      inp.parentNode.querySelector(".kg-mark").textContent = ok ? "✓" : "";
+      if (ch.asks[i].piece != null) box.querySelector(".kg-hud").outerHTML = gHud(e, gState(e));
+      if (ok) gCheck();
+    });
+    root_.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter") return;
+      if (ev.target.classList.contains("kg-team")) root_.querySelector('[data-g="start"]').click();
+      if (ev.target.classList.contains("kg-code")) root_.querySelector('[data-g="open"]').click();
     });
   }
 
