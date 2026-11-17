@@ -1705,6 +1705,7 @@
       else {
         var key = arr[arr.length - 1], ex = child(par.n, key, s.win);
         if (ex && ex.n.t === "d") out = [E(s.win ? "Access is denied." : "bash: " + redir.file + ": Is a directory")];
+        else if (s.win && ex && ex.n.a && ex.n.a.r) { s.flags.roDenied = 1; out = msgs.concat([E("Access is denied."), T("Το " + ex.k + " είναι μόνο για ανάγνωση (+R). Βγάλε το R με attrib -r " + ex.k + " και ξαναδοκίμασε.")]); }
         else {
           var prev = ex && redir.app ? ex.n.x : "";
           if (ex) delete par.n.c[ex.k];
@@ -2023,6 +2024,37 @@
     var ls = fileLines(s, ["Deltia", f]).map(function (l) { return norm(l); });
     return ["συμπτωμα", "αιτια", "εργαλειο", "λυση"].every(function (k) { return ls.some(function (l) { return new RegExp("^" + k + "\\s*:\\s*\\S").test(l); }); });
   }
+  // ---------- η αποστολή Kastro (Εργαστήριο 5): τα αρχεία της ιστορίας, όπως είναι στην αρχή του κεφαλαίου ch ----------
+  function kas(s, rel) { return node(s, ["Documents", "PixelOwl", "Kastro"].concat(rel)); }
+  function kasLines(s, f) { return fileLines(s, ["Documents", "PixelOwl", "Kastro", f]); }
+  function kastro(s, ch) {
+    var h = at(s, s.home).n;
+    h.c.Desktop.c["SIMEIOMA.txt"] = F("Αν διαβάζεις αυτό, έφυγα βιαστικά (γρίπη...).\nΤο Kastro παραδίδεται ΑΥΡΙΟ!\nΌλα είναι στα Documents\\PixelOwl. Ξεκίνα με: tree Documents\\PixelOwl /f\nΜετά διάβασε τις ΟΔΗΓΙΕΣ στον φάκελο docs.\nΚομμάτι 1 του κωδικού: DO\n- Άρης\n");
+    var kastroDir = D({
+      src: D({ "main.js": F("import { Player } from './player.js';\n// Kastro v0.9 - Pixel Owl\n"), "player.js": F("export class Player { jump() {} }\n"), "enemy.js": F("export class Enemy { move() {} }\n") }),
+      assets: D({ "hero.png": F("", 52480), "castle.png": F("", 131072), "door.png": F("", 20480), "music.mp3": F("", 3145728), "jump.wav": F("", 88200),
+        "level1.dat": F("tiles=40x12\n"), "level2.dat": F("tiles=48x12\n"), "level3.dat": F("tiles=64x14\nboss=yes\n"), "level10.dat": F("# πειραματικό: δεν μπαίνει στο παιχνίδι\n"),
+        "notes.txt": F("v0.9: διορθώθηκε το άλμα του ήρωα\nv0.8: νέο κάστρο στο επίπεδο 3\n") }),
+      docs: D({ "ODIGIES.txt": F("PIXEL OWL · Kastro v0.9\nΑπαιτήσεις: Windows 10/11, 8 GB RAM, κάρτα ήχου.\n\nΠριν την παράδοση:\n 1. Τα νέα sprites είναι στα Downloads\\sprites. Θέλουμε ΜΟΝΟ τις εικόνες .png!\n 2. Το assets\\notes.txt πάει στο docs με όνομα changelog.txt\n 3. Στο config.ini γράφουμε release=yes\n 4. Αντίγραφο ασφαλείας όλου του Kastro στο Backup\\Kastro\n 5. Ένα build.bat φτιάχνει τον φάκελο παράδοσης release\\game\n\nΥ.Γ. Το dir δεν λέει πάντα όλη την αλήθεια...\n") }),
+      "config.ini": F("[game]\nversion=0.9\nrelease=no\n"),
+      "kleidi.txt": F("Μπράβο! Βρήκες το κρυμμένο κλειδί.\nΚομμάτι 2 του κωδικού: S\nΚομμάτι 3 = πόσα αρχεία ταιριάζουν στο assets\\level?.dat (μέτρησέ τα με ΜΙΑ εντολή dir).\nΚομμάτι 4 = πόσες εικόνες .png θα έχει το assets ΜΕΤΑ το κεφάλαιο 3.\nΟ κωδικός παράδοσης: κομμάτι1 κομμάτι2 - κομμάτι3 κομμάτι4 (π.χ. AB-12).\n")
+    });
+    kastroDir.c["config.ini"].a = { a: true, r: true };
+    kastroDir.c["kleidi.txt"].a = { a: true, h: true };
+    h.c.Documents.c.PixelOwl = D({ Kastro: kastroDir, Palia: D({ "idees.txt": F("Ιδέα: δράκος-boss στο επίπεδο 3!\n") }) });
+    h.c.Downloads.c.sprites = D({ "boss.png": F("", 49152), "coin.png": F("", 6144), "dragon.png.exe": F("", 2457600) });
+    if (ch >= 4) {   // ό,τι ζητούσε το κεφάλαιο 3 έχει γίνει
+      var as = kastroDir.c.assets.c;
+      as["boss.png"] = clone(h.c.Downloads.c.sprites.c["boss.png"]); as["coin.png"] = clone(h.c.Downloads.c.sprites.c["coin.png"]);
+      kastroDir.c.docs.c["changelog.txt"] = as["notes.txt"]; delete as["notes.txt"];
+      kastroDir.c["config.ini"] = F("[game]\nversion=0.9\nrelease=no\nrelease=yes\n");
+      var b = clone(kastroDir); delete b.c["kleidi.txt"];
+      h.c.Backup = D({ Kastro: b });
+    }
+    print(s, T("🦉 Αποστολή Kastro · Κεφάλαιο " + ch + ": " + ["διάβασε το σημείωμα στο Desktop.", "τι κρύβει ο φάκελος Kastro;", "ακολούθησε τις ΟΔΗΓΙΕΣ της εταιρείας.", "ώρα για το release!"][ch - 1]));
+    print(s, "");
+  }
+
   // από notepad / calc / mspaint: το πρώτο (dir = 1) ή το τελευταίο (dir = -1) που άνοιξε
   function firstLast(s, dir) {
     var l = s.procs.list.filter(function (p) { return /^(notepad|calculatorapp|mspaint)\.exe$/i.test(p.name); }).sort(function (a, b) { return (a.pid - b.pid) * dir; });
@@ -2796,167 +2828,70 @@
       ]
     },
     {
-      id: "e5", num: 5, title: "MS-DOS και Γραμμή εντολών (cmd)", short: "cmd · .bat", date: "2026-11-10",
+      id: "e5", num: 5, title: "Escape room στη Γραμμή εντολών: η αποστολή Kastro", short: "cmd · Kastro", date: "2026-11-10",
       ex: [
-        { id: "e5a", type: "quiz", tag: "Εύκολο", title: "Από το MS-DOS στο cmd",
-          desc: "Λίγη ιστορία και η «γραμματική» μιας εντολής: εντολή, παράμετροι, βοήθεια.",
-          hint: "Μια εντολή γράφεται: όνομα + παράμετροι (π.χ. dir /b). Βοήθεια: εντολή /? ή help εντολή.",
+        { id: "e5w", type: "quiz", tag: "Εύκολο", title: "Ζέσταμα: θυμάσαι;",
+          desc: "Πριν την αποστολή: οι 10 εντολές που θα χρειαστείς. Διάλεξε ποια κάνει κάθε δουλειά.",
+          hint: "copy = ένα αρχείο, xcopy = ολόκληρος φάκελος. ren = όνομα, move = θέση. attrib = χαρακτηριστικά (κρυφό, μόνο ανάγνωση).",
+          opts: ["dir", "cd", "tree", "type", "copy", "xcopy", "move", "ren", "del", "attrib"],
           items: [
-            { q: "Το MS-DOS κυκλοφόρησε το…", opts: ["1981", "1995", "2001"], a: "1981", why: "Για τον πρώτο IBM PC. Μέχρι και τα Windows 98 «πατούσαν» πάνω του." },
-            { q: "Στην εντολή dir /b, το /b είναι…", opts: ["η εντολή", "παράμετρος (διακόπτης)", "φάκελος"], a: "παράμετρος (διακόπτης)", why: "Οι παράμετροι αλλάζουν τι κάνει η εντολή: το /b δείχνει μόνο τα ονόματα." },
-            { q: "Πώς βλέπω τη βοήθεια μιας εντολής;", opts: ["εντολή /?", "help εντολή", "και τα δύο"], a: "και τα δύο", why: "Π.χ. dir /? ή help dir." },
-            { q: "Στο cmd, DIR και dir είναι…", opts: ["το ίδιο", "διαφορετικές εντολές"], a: "το ίδιο", why: "Το cmd δεν ξεχωρίζει κεφαλαία-μικρά. Στο Linux όμως το Desktop δεν είναι το ίδιο με το desktop!" },
-            { q: "Το cmd.exe των σημερινών Windows είναι…", opts: ["το ίδιο το MS-DOS", "πρόγραμμα που κρατά τις εντολές του MS-DOS", "εικονική μηχανή"], a: "πρόγραμμα που κρατά τις εντολές του MS-DOS", why: "Από τα Windows XP δεν υπάρχει MS-DOS από κάτω. Το cmd κρατά τις εντολές για συμβατότητα." },
-            { q: "Ποιο είναι το νεότερο κέλυφος των Windows;", opts: ["PowerShell", "MS-DOS", "bash"], a: "PowerShell", why: "Έχει εντολές (cmdlets) όπως Get-ChildItem, αλλά δέχεται και τα παλιά dir, cd, copy." }
+            { q: "Δείχνει τι έχει ένας φάκελος", a: "dir" }, { q: "Αλλάζει φάκελο", a: "cd" }, { q: "Δείχνει τους φακέλους σαν δέντρο", a: "tree" },
+            { q: "Δείχνει το περιεχόμενο ενός αρχείου κειμένου", a: "type" }, { q: "Αντιγράφει ένα αρχείο", a: "copy" },
+            { q: "Αντιγράφει ολόκληρο φάκελο με τους υποφακέλους του", a: "xcopy" }, { q: "Πηγαίνει ένα αρχείο σε άλλο φάκελο", a: "move" },
+            { q: "Αλλάζει όνομα, όχι θέση", a: "ren" }, { q: "Σβήνει αρχεία", a: "del" }, { q: "Κάνει ένα αρχείο κρυφό ή μόνο για ανάγνωση", a: "attrib" }
           ] },
-        { id: "e5b", type: "term", os: "windows", tag: "Εύκολο", title: "Περπάτημα στους φακέλους",
-          desc: "Η διαδρομή C:\\Users\\mathitis\\Downloads είναι ΑΠΟΛΥΤΗ: ξεκινά από τη ρίζα του δίσκου (C:\\) και δουλεύει από όπου κι αν είσαι. Η ..\\Documents είναι ΣΧΕΤΙΚΗ: ξεκινά από εκεί που βρίσκεσαι (.. = ο «γονικός» φάκελος).",
+        { id: "e5k1", type: "term", os: "windows", tag: "Εύκολο", title: "Kastro · Κεφάλαιο 1: Το σημείωμα", setup: function (s) { kastro(s, 1); },
+          desc: "Η Pixel Owl παραδίδει ΑΥΡΙΟ το παιχνίδι Kastro, αλλά ο προγραμματιστής έφυγε βιαστικά. Άφησε ένα σημείωμα στο Desktop. Διάβασέ το, βρες πού είναι το project και τι πρέπει να γίνει. Κάθε κεφάλαιο δίνει ένα κομμάτι του κωδικού παράδοσης: κράτα τα σε χαρτί!",
           steps: [
-            { t: "Μπες στο Desktop (σχετική διαδρομή)", hint: ["cd Desktop"], check: function (s) { return markOnce(s, "_b1", cwdIs(s, ["Users", USER, "Desktop"])); } },
-            { t: "Πήγαινε στα Documents χωρίς να γυρίσεις πρώτα πίσω", hint: ["cd ..\\Documents"], check: function (s) { return cwdIs(s, ["Users", USER, "Documents"]) && H(s, /^cd\s*\.\.[\\/]documents/i); } },
-            { t: "Πήγαινε στη ρίζα του δίσκου", hint: ["cd \\"], check: function (s) { return markOnce(s, "_b3", s.cwd.length === 0); } },
-            { t: "Πήγαινε στα Downloads με απόλυτη διαδρομή", hint: ["cd C:\\Users\\mathitis\\Downloads"], check: function (s) { return cwdIs(s, ["Users", USER, "Downloads"]) && H(s, /^cd\s+(\/d\s+)?(c:)?\\users\\mathitis\\downloads/i); } },
-            { t: "Δες τι έχει μέσα", hint: ["dir"], check: function (s) { return cwdIs(s, ["Users", USER, "Downloads"]) && H(s, /^dir\b/i); } }
+            { t: "Διάβασε το σημείωμα στο Desktop", hint: ["type Desktop\\SIMEIOMA.txt"], check: function (s) { return H(s, /^type\s+.*simeioma/i); } },
+            { t: "Δες όλο το project σαν δέντρο, με τα αρχεία", hint: ["tree Documents\\PixelOwl /f"], check: function (s) { return H(s, /^tree\s+.*pixelowl.*\/f/i); } },
+            { t: "Μπες στον φάκελο του παιχνιδιού", hint: ["cd Documents\\PixelOwl\\Kastro"], check: function (s) { return cwdIs(s, ["Users", USER, "Documents", "PixelOwl", "Kastro"]); } },
+            { t: "Διάβασε τις οδηγίες της εταιρείας", hint: ["type docs\\ODIGIES.txt"], check: function (s) { return H(s, /^type\s+.*odigies/i); } }
           ],
           asks: [
-            { q: "Ποιο πρόγραμμα εγκατάστασης υπάρχει στα Downloads;", a: ["setup.exe", "setup"] },
-            { q: "Πόσα αρχεία έχει ο φάκελος Documents;", num: 2 },
-            { q: "Τι γράφει το prompt όταν είσαι στη ρίζα;", a: [/^c:\\>?$/] }
+            { q: "Κομμάτι 1 του κωδικού", a: ["do"] },
+            { q: "Πόσα αρχεία έχει ο φάκελος src;", num: 3 },
+            { q: "Πόσα GB RAM θέλει το παιχνίδι;", num: 8 }
           ] },
-        { id: "e5c", type: "term", os: "windows", tag: "Εύκολο", title: "Φτιάξε και σβήσε φακέλους",
-          desc: "md (ή mkdir) φτιάχνει φάκελο, ακόμα και ολόκληρη διαδρομή μαζί. rd (ή rmdir) σβήνει φάκελο, αλλά μόνο αν είναι άδειος. Με rd /s σβήνει και τα περιεχόμενα. tree δείχνει τους φακέλους σαν δέντρο.",
+        { id: "e5k2", type: "term", os: "windows", tag: "Μέτριο", title: "Kastro · Κεφάλαιο 2: Τα κρυμμένα", setup: function (s) { kastro(s, 2); },
+          desc: "«Το dir δεν λέει πάντα όλη την αλήθεια…» έγραφαν οι οδηγίες. Στον φάκελο Kastro κρύβεται ένα αρχείο. Βρες το, διάβασέ το, και κάνε ό,τι σου λέει με τις μασκές * και ?.",
           steps: [
-            { t: "Φτιάξε με ΜΙΑ εντολή τον Proxeiro και μέσα του τον a, και μέσα σε αυτόν τον b", hint: ["md Proxeiro\\a\\b"], check: function (s) { return isDir(s, ["Proxeiro", "a", "b"]); } },
-            { t: "Δες το δέντρο του", hint: ["tree Proxeiro"], check: function (s) { return H(s, /^tree\s+proxeiro/i); } },
-            { t: "Προσπάθησε να τον σβήσεις με σκέτο rd", hint: ["rd Proxeiro"], check: function (s) { return s.flags.rdNotEmpty; } },
-            { t: "Σβήσ' τον μαζί με τα περιεχόμενα", hint: ["rd /s Proxeiro"], check: function (s) { return s.flags.rdNotEmpty && !node(s, ["Proxeiro"]); } }
+            { t: "Μπες στο Kastro και δες τι έχει, και μετά τι κρύβει", hint: ["cd Documents\\PixelOwl\\Kastro", "dir", "dir /a"], check: function (s) { return s.flags.dirAll && cwdIs(s, ["Users", USER, "Documents", "PixelOwl", "Kastro"]); } },
+            { t: "Δες τα χαρακτηριστικά του κρυμμένου αρχείου", hint: ["attrib kleidi.txt"], check: function (s) { return H(s, /^attrib\s+(\S+\\)?kleidi/i); } },
+            { t: "Διάβασέ το", hint: ["type kleidi.txt"], check: function (s) { return H(s, /^type\s+(\S+\\)?kleidi/i); } },
+            { t: "Μέτρα με ΜΙΑ εντολή τα αρχεία level?.dat του assets", hint: ["dir assets\\level?.dat"], check: function (s) { return H(s, /^dir\s+(\S+\\)?assets\\level\?\.dat/i); } },
+            { t: "Δες και πόσες εικόνες .png έχει τώρα το assets", hint: ["dir assets\\*.png"], check: function (s) { return H(s, /^dir\s+(\S+\\)?assets\\\*\.png/i); } }
           ],
           asks: [
-            { q: "Τι απάντησε το σκέτο rd; (στα αγγλικά)", a: [/not empty/] },
-            { q: "Πόσους φακέλους έφτιαξε το md Proxeiro\\a\\b;", num: 3 }
+            { q: "Κομμάτι 2 του κωδικού", a: ["s"] },
+            { q: "Κομμάτι 3: πόσα αρχεία ταιριάζουν στο level?.dat;", num: 3 },
+            { q: "Ποιο γράμμα του attrib έκρυβε το κλειδί;", a: ["h", "+h"] }
           ] },
-        { id: "e5d", type: "quiz", tag: "Εύκολο", title: "Απόλυτη ή σχετική;",
-          desc: "Απόλυτη = ξεκινά από τη ρίζα (C:\\ ή σκέτο \\). Σχετική = ξεκινά από τον φάκελο που βρίσκεσαι.",
-          hint: "Κοίτα μόνο την αρχή: C:\\ ή \\ σημαίνει απόλυτη. Όνομα φακέλου, . ή .. σημαίνει σχετική.",
-          opts: ["Απόλυτη", "Σχετική"],
-          items: [
-            { q: "C:\\Users\\mathitis\\Desktop", a: "Απόλυτη", why: "Ξεκινά από τον δίσκο C:." },
-            { q: "Desktop\\SAEK", a: "Σχετική", why: "Ξεκινά από τον φάκελο που είσαι τώρα." },
-            { q: "..\\Documents", a: "Σχετική", why: "Ένα επίπεδο πάνω από εκεί που είσαι, και μετά Documents." },
-            { q: "\\Windows\\System32", a: "Απόλυτη", why: "Το \\ στην αρχή σημαίνει «από τη ρίζα του δίσκου»." },
-            { q: "%USERPROFILE%\\Music", a: "Απόλυτη", why: "Η μεταβλητή γίνεται C:\\Users\\mathitis, άρα ξεκινά από τον δίσκο." },
-            { q: "Είσαι στο C:\\Users\\mathitis\\Desktop. Πού πας με cd ..\\..;", opts: ["C:\\Users", "C:\\Users\\mathitis", "C:\\"], a: "C:\\Users", why: "Κάθε .. ανεβαίνει ένα επίπεδο: Desktop → mathitis → Users." }
-          ] },
-        { id: "e5e", type: "term", os: "windows", tag: "Μέτριο", title: "Αντιγραφή, μετακίνηση, μετονομασία",
-          desc: "copy = αντίγραφο (το αρχικό μένει). move = αλλάζει θέση. ren = αλλάζει μόνο όνομα. type = δείχνει το περιεχόμενο. Όλα στο Desktop.",
+        { id: "e5k3", type: "term", os: "windows", tag: "Μέτριο", title: "Kastro · Κεφάλαιο 3: Σώσε το project", setup: function (s) { kastro(s, 3); },
+          desc: "Ακολούθησε τις ΟΔΗΓΙΕΣ της εταιρείας: φέρε τα νέα sprites (ΜΟΝΟ τις εικόνες!), τακτοποίησε τις σημειώσεις, άλλαξε το config.ini (που δεν σε αφήνει…) και κράτα αντίγραφο ασφαλείας. Δούλευε από τον φάκελό σου (C:\\Users\\mathitis).",
           steps: [
-            { t: "Μπες στο Desktop", hint: ["cd Desktop"], check: function (s) { return markOnce(s, "_e1", cwdIs(s, ["Users", USER, "Desktop"])); } },
-            { t: "Φτιάξε αντίγραφο του ergasia.txt με όνομα ergasia_old.txt", hint: ["copy ergasia.txt ergasia_old.txt"], check: function (s) { return markOnce(s, "_e2", !!node(s, ["Desktop", "ergasia_old.txt"])); } },
-            { t: "Φτιάξε τον φάκελο Archeio", hint: ["md Archeio"], check: function (s) { return isDir(s, ["Desktop", "Archeio"]); } },
-            { t: "Μετακίνησε το αντίγραφο μέσα στο Archeio", hint: ["move ergasia_old.txt Archeio"], check: function (s) { return markOnce(s, "_e4", s._e2 != null && !node(s, ["Desktop", "ergasia_old.txt"]) && (!!node(s, ["Desktop", "Archeio", "ergasia_old.txt"]) || !!node(s, ["Desktop", "Archeio", "palia.txt"]))); } },
-            { t: "Μετονόμασέ το σε palia.txt", hint: ["ren Archeio\\ergasia_old.txt palia.txt"], check: function (s) { return !!node(s, ["Desktop", "Archeio", "palia.txt"]); } },
-            { t: "Δες το περιεχόμενό του", hint: ["type Archeio\\palia.txt"], check: function (s) { return H(s, /^type\s+.*palia\.txt/i); } }
+            { t: "Φέρε στο assets μόνο τις εικόνες .png από τα Downloads\\sprites", hint: ["copy Downloads\\sprites\\*.png Documents\\PixelOwl\\Kastro\\assets"], check: function (s) { return kas(s, ["assets", "boss.png"]) && kas(s, ["assets", "coin.png"]); } },
+            { t: "Μετακίνησε το assets\\notes.txt στο docs με όνομα changelog.txt", hint: ["move Documents\\PixelOwl\\Kastro\\assets\\notes.txt Documents\\PixelOwl\\Kastro\\docs\\changelog.txt"], check: function (s) { return kas(s, ["docs", "changelog.txt"]) && !kas(s, ["assets", "notes.txt"]); } },
+            { t: "Γράψε release=yes στο config.ini (αν σε αφήσει…)", hint: ["cd Documents\\PixelOwl\\Kastro", "echo release=yes >> config.ini", "attrib config.ini", "attrib -r config.ini", "echo release=yes >> config.ini"], check: function (s) { var r = kas(s, ["config.ini"]); return !!(r && /release=yes/.test(r.n.x)); } },
+            { t: "Κράτα αντίγραφο ασφαλείας όλου του Kastro στο Backup\\Kastro", hint: ["cd %USERPROFILE%", "xcopy Documents\\PixelOwl\\Kastro Backup\\Kastro /e /i"], check: function (s) { return !!node(s, ["Backup", "Kastro", "src", "main.js"]); } }
           ],
           asks: [
-            { q: "Ποια εντολή αλλάζει θέση σε ένα αρχείο;", a: ["move"] },
-            { q: "Ποια εντολή αλλάζει μόνο το όνομα;", a: ["ren", "rename"] },
-            { q: "Υπάρχει ακόμα το ergasia.txt στο Desktop; (ναι / όχι)", a: ["ναι", "nai", "yes"] }
+            { q: "Ποιο αρχείο των sprites ΔΕΝ αντέγραψες;", a: [/dragon/] },
+            { q: "Κομμάτι 4: πόσες εικόνες .png έχει τώρα το assets;", num: 5 },
+            { q: "Τι απάντησε το echo όσο το config.ini ήταν +R; (στα αγγλικά)", a: [/access is denied/] }
           ] },
-        { id: "e5f", type: "term", os: "windows", tag: "Μέτριο", title: "Οι μασκές * και ?",
-          desc: "Το * ταιριάζει με όσους χαρακτήρες θες (και κανέναν). Το ? με ΑΚΡΙΒΩΣ έναν. Έτσι το *.tmp πιάνει όλα τα .tmp, ενώ το test?.tmp μόνο όσα έχουν έναν χαρακτήρα μετά το test.",
+        { id: "e5k4", type: "term", os: "windows", tag: "Ο στόχος", title: "Kastro · Κεφάλαιο 4: Το release", setup: function (s) { kastro(s, 4); },
+          desc: "Τελευταίο κεφάλαιο! Έλεγξε ότι ο υπολογιστής τρέχει το παιχνίδι και γράψε στο Kastro ένα build.bat που φτιάχνει τον φάκελο παράδοσης release\\game (src, assets και config.ini) και γράφει το δέντρο του στο release.txt. Μετά δώσε τον κωδικό παράδοσης: κομμάτι 1, κομμάτι 2, παύλα, κομμάτι 3, κομμάτι 4.",
           steps: [
-            { t: "Στο Desktop φτιάξε τα test1.tmp, test2.tmp και test10.tmp", hint: ["cd Desktop", "echo a > test1.tmp", "echo b > test2.tmp", "echo c > test10.tmp"], check: function (s) { return markOnce(s, "_f1", ["test1.tmp", "test2.tmp", "test10.tmp"].every(function (f) { return node(s, ["Desktop", f]); })); } },
-            { t: "Δες μόνο τα .tmp", hint: ["dir *.tmp"], check: function (s) { return s._f1 != null && H(s, /^dir\s+\*\.tmp/i); } },
-            { t: "Δες μόνο όσα ταιριάζουν στο test?.tmp", hint: ["dir test?.tmp"], check: function (s) { return H(s, /^dir\s+test\?\.tmp/i); } },
-            { t: "Σβήσε με μία εντολή τα test?.tmp", hint: ["del test?.tmp"], check: function (s) { return markOnce(s, "_f4", s._f1 != null && !node(s, ["Desktop", "test1.tmp"]) && !node(s, ["Desktop", "test2.tmp"]) && (!!node(s, ["Desktop", "test10.tmp"]) || !!node(s, ["Desktop", "test10.bak"]))); } },
-            { t: "Άλλαξε την κατάληξη σε όσα .tmp έμειναν σε .bak", hint: ["ren *.tmp *.bak"], check: function (s) { return s._f4 != null && !!node(s, ["Desktop", "test10.bak"]); } }
+            { t: "Στο Kastro, έλεγξε RAM και κάρτα ήχου", hint: ["cd Documents\\PixelOwl\\Kastro", 'systeminfo | find "Total Physical Memory"', 'driverquery | find "Audio"'], check: function (s) { return H(s, /^systeminfo\b.*\|\s*find/i) && H(s, /^driverquery\b.*\|\s*find\b.*audio/i); } },
+            { t: "Γράψε το build.bat", hint: ["echo @echo off > build.bat", "echo md release\\game >> build.bat", "echo xcopy src release\\game\\src /e /i >> build.bat", "echo xcopy assets release\\game\\assets /e /i >> build.bat", "echo copy config.ini release\\game >> build.bat", "echo tree release /f ^> release.txt >> build.bat", "echo echo Etoimo! >> build.bat"], check: function (s) { var l = kasLines(s, "build.bat"); return l.some(function (x) { return /^\s*xcopy\s+src\b/i.test(x); }) && l.some(function (x) { return /^\s*xcopy\s+assets\b/i.test(x); }); } },
+            { t: "Τρέξ' το", hint: ["build"], check: function (s) { return (s.bats || []).some(function (b) { return b.name === "build.bat"; }) && kas(s, ["release", "game", "src", "main.js"]) && kas(s, ["release", "game", "assets", "boss.png"]) && kas(s, ["release", "game", "config.ini"]); } },
+            { t: "Δες το release.txt", hint: ["type release.txt"], check: function (s) { var r = kas(s, ["release.txt"]); return !!(r && /main\.js/i.test(r.n.x)) && H(s, /^type\s+release\.txt/i); } }
           ],
           asks: [
-            { q: "Πόσα αρχεία έδειξε το dir test?.tmp;", num: 2 },
-            { q: "Ποιο αρχείο γλίτωσε από το del test?.tmp;", a: ["test10.tmp"] },
-            { q: "Με πόσους χαρακτήρες ταιριάζει το ?;", num: 1 }
-          ] },
-        { id: "e5g", type: "term", os: "windows", tag: "Μέτριο", title: "Κρυφό και μόνο για ανάγνωση",
-          desc: "Το attrib δείχνει και αλλάζει τα χαρακτηριστικά ενός αρχείου: +H = κρυφό (το dir δεν το δείχνει), +R = μόνο για ανάγνωση (δεν σβήνεται). Με - τα βγάζεις.",
-          steps: [
-            { t: "Στο Desktop φτιάξε το mystiko.txt", hint: ["cd Desktop", "echo kodikos > mystiko.txt"], check: function (s) { return markOnce(s, "_g1", !!node(s, ["Desktop", "mystiko.txt"])); } },
-            { t: "Κάν' το κρυφό και μόνο για ανάγνωση και δες τα χαρακτηριστικά του", hint: ["attrib +h +r mystiko.txt", "attrib mystiko.txt"], check: function (s) { var r = node(s, ["Desktop", "mystiko.txt"]); return markOnce(s, "_g2", !!(r && r.n.a && r.n.a.h && r.n.a.r) && s.flags.attribShown); } },
-            { t: "Δες ότι το dir δεν το δείχνει, αλλά το dir /a ναι", hint: ["dir", "dir /a"], check: function (s) { return s._g2 != null && s.flags.dirAll; } },
-            { t: "Προσπάθησε να το σβήσεις", hint: ["del mystiko.txt"], check: function (s) { return s._g2 != null && (s.flags.hidDel || s.flags.roDenied); } },
-            { t: "Βγάλε τα χαρακτηριστικά και σβήσ' το", hint: ["attrib -h -r mystiko.txt", "del mystiko.txt"], check: function (s) { return s._g2 != null && !node(s, ["Desktop", "mystiko.txt"]); } }
-          ],
-          asks: [
-            { q: "Το γράμμα του «κρυφού» στο attrib", a: ["h", "+h"] },
-            { q: "Το γράμμα του «μόνο για ανάγνωση»", a: ["r", "+r"] },
-            { q: "Με ποια παράμετρο το dir δείχνει και τα κρυφά;", a: ["/a", "dir /a"] }
-          ] },
-        { id: "e5h", type: "term", os: "windows", tag: "Μέτριο", title: "Αντίγραφο ασφαλείας: xcopy και robocopy",
-          desc: "Το copy δεν αντιγράφει φακέλους. Για ολόκληρους φακέλους υπάρχει το xcopy (/e = και οι υποφάκελοι, /i = ο προορισμός είναι φάκελος) και το νεότερο robocopy, που αντιγράφει μόνο ό,τι λείπει ή άλλαξε.",
-          steps: [
-            { t: "Αντίγραψε όλο τον φάκελο Documents στο Backup\\Documents", hint: ["xcopy Documents Backup\\Documents /e /i"], check: function (s) { return s.flags.xcopy && !!node(s, ["Backup", "Documents", "sxolio.txt"]); } },
-            { t: "Αντίγραψε τις Εικόνες με robocopy", hint: ["robocopy Pictures Backup\\Pictures /e"], check: function (s) { return s.flags.robocopy && !!node(s, ["Backup", "Pictures", "diakopes.png"]); } },
-            { t: "Ξανατρέξε ακριβώς το ίδιο robocopy και κοίτα τη στήλη Skipped", hint: ["robocopy Pictures Backup\\Pictures /e"], check: function (s) { return s.robo >= 2; } },
-            { t: "Δες όλο το αντίγραφο σαν δέντρο, με τα αρχεία", hint: ["tree Backup /f"], check: function (s) { return H(s, /^tree\s+backup\b.*\/f/i); } }
-          ],
-          asks: [
-            { q: "Πόσα αρχεία αντέγραψε το xcopy;", num: 2 },
-            { q: "Στο 2ο robocopy, πόσα αρχεία πήγαν στη στήλη Skipped;", num: 1 },
-            { q: "Ποια παράμετρος του xcopy παίρνει και τους υποφακέλους, ακόμα και τους άδειους;", a: ["/e"] }
-          ] },
-        { id: "e5i", type: "quiz", tag: "Μέτριο", title: "Ποια εντολή κάνει τι;",
-          desc: "Αντιστοίχισε κάθε δουλειά με την εντολή της.",
-          hint: "Θυμήσου: copy = αρχεία, xcopy = και φάκελοι. ren = όνομα, move = θέση. attrib = χαρακτηριστικά.",
-          opts: ["type", "xcopy", "tree", "attrib", "ren", "md", "del", "move"],
-          items: [
-            { q: "Δείχνει το περιεχόμενο ενός αρχείου κειμένου", a: "type" },
-            { q: "Αντιγράφει ολόκληρο φάκελο με τους υποφακέλους του", a: "xcopy" },
-            { q: "Δείχνει τους φακέλους σαν δέντρο", a: "tree" },
-            { q: "Κάνει ένα αρχείο κρυφό", a: "attrib" },
-            { q: "Αλλάζει όνομα σε αρχείο, όχι θέση", a: "ren" },
-            { q: "Φτιάχνει φάκελο", a: "md" },
-            { q: "Σβήνει αρχεία (όχι φακέλους)", a: "del" },
-            { q: "Πηγαίνει ένα αρχείο σε άλλο φάκελο", a: "move" }
-          ] },
-        { id: "e5j", type: "term", os: "windows", tag: "Μέτριο", title: "Εργαλεία συστήματος",
-          desc: "Μερικά εργαλεία υπάρχουν μόνο (ή πιο γρήγορα) στη Γραμμή εντολών: systeminfo (όλα τα στοιχεία του PC), ipconfig /all (το δίκτυο με λεπτομέρειες), driverquery (οι οδηγοί συσκευών), sfc /scannow (έλεγχος αρχείων συστήματος) και τα γνωστά tasklist / taskkill.",
-          steps: [
-            { t: "Βρες μόνο τη γραμμή της μνήμης RAM", hint: ['systeminfo | find "Total Physical Memory"'], check: function (s) { return H(s, /^systeminfo\b.*\|\s*find/i); } },
-            { t: "Δες το δίκτυο με όλες τις λεπτομέρειες", hint: ["ipconfig /all"], check: function (s) { return H(s, /^ipconfig\s+\/all/i); } },
-            { t: "Δες τους οδηγούς συσκευών", hint: ["driverquery"], check: function (s) { return s.flags.driverquery; } },
-            { t: "Ξεκίνα έλεγχο των αρχείων συστήματος", hint: ["sfc /scannow"], check: function (s) { return s.flags.sfc; } },
-            { t: "Κλείσε το κολλημένο paixnidi.exe", hint: ["taskkill /im paixnidi.exe /f"], check: function (s) { return !procNamed(s, "paixnidi.exe"); } }
-          ],
-          asks: [
-            { q: "Η μνήμη RAM του υπολογιστή (MB)", a: ["16183", "16183 mb"] },
-            { q: "Η φυσική διεύθυνση (MAC) της κάρτας δικτύου", a: ["8C-04-BA-3F-21-7D"] },
-            { q: "Τι χρειάζεται το sfc /scannow για να τρέξει;", a: [/διαχειρ/, /admin/] },
-            { q: "Το Module Name του οδηγού της κάρτας δικτύου (Intel)", a: ["e1dexpress"] }
-          ] },
-        { id: "e5k", type: "term", os: "windows", tag: "Εύκολο", title: "Το πρώτο μου .bat",
-          desc: "Ένα αρχείο .bat (αρχείο δέσμης) είναι απλώς εντολές, μία ανά γραμμή. Το γράφεις με echo … >> αρχείο.bat (ή στο Σημειωματάριο) και το τρέχεις γράφοντας το όνομά του. Η πρώτη γραμμή @echo off κρύβει τις ίδιες τις εντολές, για να φαίνονται μόνο τα αποτελέσματα.",
-          steps: [
-            { t: "Στο Desktop ξεκίνα το hello.bat με τη γραμμή @echo off", hint: ["cd Desktop", "echo @echo off > hello.bat"], check: function (s) { return /^@echo off$/i.test((fileLines(s, ["Desktop", "hello.bat"])[0] || "").trim()); } },
-            { t: "Πρόσθεσε τρεις εντολές: ένα μήνυμα, την έκδοση και την ημερομηνία", hint: ["echo echo Kalimera! >> hello.bat", "echo ver >> hello.bat", "echo date /t >> hello.bat"], check: function (s) { return fileLines(s, ["Desktop", "hello.bat"]).map(function (l) { return l.trim(); }).filter(Boolean).length >= 4; } },
-            { t: "Δες τι έγραψες", hint: ["type hello.bat"], check: function (s) { return H(s, /^type\s+hello\.bat/i); } },
-            { t: "Τρέξ' το", hint: ["hello"], check: function (s) { return (s.bats || []).some(function (b) { return b.name === "hello.bat"; }); } }
-          ],
-          asks: [
-            { q: "Τι κάνει η γραμμή @echo off;", a: [/δεν (φαιν|εμφαν|δειχν|τυπων|βλεπ)/, /κρυβ|κρυφ/] },
-            { q: "Η κατάληξη ενός αρχείου δέσμης", a: [".bat", "bat", ".cmd"] },
-            { q: "Πόσες εντολές έτρεξε το hello.bat; (χωρίς το @echo off)", a: function (s) { var b = (s.bats || []).filter(function (x) { return x.name === "hello.bat"; }).pop(); return b ? [String(b.lines.length)] : ["3"]; } }
-          ] },
-        { id: "e5l", type: "term", os: "windows", tag: "Ο στόχος", title: "Το έργο web με ένα .bat",
-          desc: "Το σενάριο της ημέρας: ένα .bat που στήνει μόνο του τη δομή ενός έργου web: φάκελος mysite με υποφακέλους css, js, images και ένα άδειο index.html. Μέσα στο echo, το ^> γράφει το σύμβολο > στο αρχείο, αντί να το εκτελέσει.",
-          steps: [
-            { t: "Στο Desktop γράψε το site.bat με @echo off και τρία md (css, js, images μέσα στο mysite)", hint: ["cd Desktop", "echo @echo off > site.bat", "echo md mysite\\css >> site.bat", "echo md mysite\\js >> site.bat", "echo md mysite\\images >> site.bat"], check: function (s) { return fileLines(s, ["Desktop", "site.bat"]).filter(function (l) { return /^\s*(md|mkdir)\s+mysite\\/i.test(l); }).length >= 3; } },
-            { t: "Πρόσθεσε τη γραμμή που φτιάχνει το άδειο index.html και ένα μήνυμα «Etoimo!»", hint: ["echo type nul ^> mysite\\index.html >> site.bat", "echo echo Etoimo! >> site.bat"], check: function (s) { return fileLines(s, ["Desktop", "site.bat"]).some(function (l) { return /index\.html/i.test(l) && />/.test(l); }); } },
-            { t: "Τρέξε το site.bat", hint: ["site"], check: function (s) { return (s.bats || []).some(function (b) { return b.name === "site.bat"; }) && ["css", "js", "images"].every(function (d) { return isDir(s, ["Desktop", "mysite", d]); }) && !!node(s, ["Desktop", "mysite", "index.html"]); } },
-            { t: "Το παραδοτέο: γράψε το δέντρο του mysite στο tree.txt", hint: ["tree mysite /f > tree.txt"], check: function (s) { return fileHas(s, ["Desktop", "tree.txt"], "index.html"); } }
-          ],
-          asks: [
-            { q: "Πόσους υποφακέλους έχει το mysite;", num: 3 },
-            { q: "Ποιο αρχείο φαίνεται μέσα στο mysite στο tree.txt;", a: ["index.html"] },
-            { q: "Αν τρέξεις ξανά το site.bat, τι λέει το md για τους φακέλους; (στα αγγλικά)", a: [/already exists/] }
+            { q: "Τρέχει το Kastro σε αυτόν τον υπολογιστή; (ναι / όχι)", a: ["ναι", "nai", "yes"] },
+            { q: "Πόσα αρχεία έχει το release\\game\\assets;", a: function (s) { var r = kas(s, ["release", "game", "assets"]); return r ? [String(Object.keys(r.n.c).filter(function (k) { return r.n.c[k].t === "f"; }).length)] : ["11"]; } },
+            { q: "🔑 Ο κωδικός παράδοσης", a: [/^dos\W*35$/] }
           ] },
         { id: "e5m", type: "quiz", tag: "Δύσκολο", title: "Τι θα γίνει αν…;",
           desc: "Πρόβλεψε τι θα κάνει κάθε εντολή ΠΡΙΝ τη δοκιμάσεις. Μετά, αν θες, δοκίμασέ τες στο ελεύθερο τερματικό.",
@@ -3397,8 +3332,7 @@
     e4k: ["4", [30]], e4l: ["4", [30]], e4m: ["4", [32]], e4n: ["4", [32]], e4o: ["4", [34]], e4p: ["4", [34]],
     r34a: ["4", [3, 37]], r34b: ["3", [6, 15]], r34c: ["3", [10, 15]], r34d: ["4", [6, 7]], r34e: ["4", [13]], r34f: ["4", [24, 25]], r34g: ["4", [18]], r34h: ["4", [21]],
     r34i: ["4", [3, 25]], r34j: ["4", [6, 7]], r34k: ["4", [13]], r34l: ["4", [26, 27]], r34m: ["3", [28]], r34n: ["3", [30]], r34o: ["4", [6, 7]],
-    e5a: ["5", [3]], e5b: ["5", [5, 7]], e5c: ["5", [7]], e5d: ["5", [5]], e5e: ["5", [9]], e5f: ["5", [10]], e5g: ["5", [12]], e5h: ["5", [13]],
-    e5i: ["5", [15]], e5j: ["5", [17]], e5k: ["5", [19]], e5l: ["5", [19]], e5m: ["5", [21]], e5n: ["5", [23]], e5o: ["5", [25]],
+    e5w: ["5", [4]], e5k1: ["5", [6, 7]], e5k2: ["5", [5, 8]], e5k3: ["5", [5, 9]], e5k4: ["5", [5, 10]], e5m: ["5", [12]], e5n: ["5", [14]], e5o: ["5", [15]],
     e6a: ["6", [3]], e6b: ["6", [5]], e6c: ["6", [7]], e6d: ["6", [7]], e6e: ["6", [9]], e6f: ["6", [9]], e6g: ["6", [12]], e6h: ["6", [12]],
     e6i: ["6", [16]], e6j: ["6", [16]], e6k: ["6", [18]], e6l: ["6", [20]],
     e7a: ["7", [3]], e7b: ["7", [5]], e7c: ["7", [7]], e7d: ["7", [7]], e7e: ["7", [7]], e7f: ["7", [7]], e7g: ["7", [10]], e7h: ["7", [12]],
@@ -3673,6 +3607,7 @@
   // ---------- αποστολές στο τερματικό ----------
   function exSim(e, keep) {
     var s = newSim(e.os);
+    if (e.setup) e.setup(s);   // άσκηση με δικά της αρχεία (π.χ. η αποστολή Kastro)
     s.stepOk = keep || [];
     s.after = function (s) { termAfter(e, s); };
     return s;
