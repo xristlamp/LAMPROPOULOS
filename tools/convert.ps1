@@ -21,7 +21,8 @@ $map = @(
   @("ΣΑΕΚ_GLYFADA\Μάθημα04_Σύνολα_και_λεξικά_v2.pptx",                 "glyfada\python-04-syn-lex"),
   @("ΣΑΕΚ_GLYFADA\Μάθημα05_Αρχεία_και_εξαιρέσεις_v2.pptx",                "glyfada\python-05-arxeia"),
   @("ΣΑΕΚ_GLYFADA\Μάθημα06_Συναρτήσεις.pptx",                          "glyfada\python-06-synartiseis"),
-  @("ΣΑΕΚ_GLYFADA\Μάθημα07_Αναδρομή_και_βιβλιοθήκες.pptx",              "glyfada\python-07-anadromi")
+  @("ΣΑΕΚ_GLYFADA\Μάθημα07_Αναδρομή_και_βιβλιοθήκες.pptx",              "glyfada\python-07-anadromi"),
+  @("ΣΑΕΚ_GLYFADA\Μάθημα08_Συμβολοσειρές.pptx",                       "glyfada\python-08-symvoloseires")
 )
 
 $pp = New-Object -ComObject PowerPoint.Application
